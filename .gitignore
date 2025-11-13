@@ -1,0 +1,89 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+dist/
+build/
+*.jar
+target/
+out/
+
+# Environment variables (NEVER commit these)
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Backups
+*.bak
+*.backup
+*-bak/
+*-Copy/
+
+# IDE artifacts
+.classpath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+
+# Maven
+pom.xml.tag
+pom.xml.releaseBackup
+release.properties
+release-prepare.properties
+target/
+
+# Database
+*.sql (except schema files)
+local.db
+database.sqlite
+
+# Compiled files
+*.class
+*.jar
+*.exe
+*.o
+*.so
+
+# System files
+.DS_Store
+.AppleDouble
+.LSOverride
+desktop.ini
+
+# VS Code
+.vscode/settings.json
+.vscode/extensions.json
+
+# Node
+package-lock.json
+yarn.lock
+
+# App specific
+frontend/node_modules/
+frontend/.env
+backend/target/
+docs/*.backup
