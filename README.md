@@ -1,2 +1,0 @@
-# kwick
-entire kwick-webapp
