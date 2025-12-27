@@ -1,0 +1,330 @@
+package com.kwick.backend.controller;
+
+import com.kwick.backend.ApiResponse;
+import com.kwick.backend.model.KycVerification;
+import com.kwick.backend.model.User;
+import com.kwick.backend.repository.KycRepository;
+import com.kwick.backend.repository.UserRepository;
+import com.kwick.backend.service.EmailService;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@RestController
+@RequestMapping("/api/admin/kyc")
+public class AdminKycController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AdminKycController.class);
+
+    private final KycRepository kycRepository;
+    private final UserRepository userRepository;
+    private final EmailService emailService;
+
+    public AdminKycController(KycRepository kycRepository, UserRepository userRepository, EmailService emailService) {
+        this.kycRepository = kycRepository;
+        this.userRepository = userRepository;
+        this.emailService = emailService;
+    }
+
+    /**
+     * Get all KYC submissions (with optional filtering by status)
+     */
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllKycSubmissions(
+            @RequestParam(required = false, defaultValue = "pending") String status,
+            HttpServletRequest request) {
+        try {
+            // Verify admin access
+            if (!isAdminUser(request)) {
+                return ResponseEntity.status(403).body(new ApiResponse<>("Forbidden: Admin access required"));
+            }
+
+            List<KycVerification> kycSubmissions;
+            if ("all".equalsIgnoreCase(status)) {
+                kycSubmissions = kycRepository.findAll();
+            } else {
+                kycSubmissions = kycRepository.findByVerificationStatus(status);
+            }
+
+            // Map to DTO with user info (use mutable map to allow null values)
+            List<Map<String, Object>> result = kycSubmissions.stream().map(kyc -> {
+                Optional<User> user = userRepository.findById(java.util.Objects.requireNonNull(kyc.getUserId()));
+                java.util.Map<String, Object> dto = new java.util.HashMap<>();
+                dto.put("kycId", kyc.getId());
+                dto.put("userId", kyc.getUserId());
+                dto.put("userName", user.map(User::getName).orElse("Unknown"));
+                dto.put("userEmail", user.map(User::getEmail).orElse("N/A"));
+                dto.put("aadhaarLast4", maskNumber(kyc.getAadhaarNumber()));
+                dto.put("city", kyc.getCity());
+                dto.put("state", kyc.getState());
+                dto.put("verificationStatus", kyc.getVerificationStatus());
+                dto.put("rejectionReason", kyc.getRejectionReason());
+                dto.put("createdAt", kyc.getCreatedAt());
+                dto.put("verifiedAt", kyc.getVerifiedAt());
+                dto.put("verifiedByAdmin", kyc.getVerifiedByAdmin());
+                return dto;
+            }).collect(Collectors.toList());
+
+            logger.info("Retrieved {} KYC submissions with status: {}", result.size(), status);
+            return ResponseEntity.ok(new ApiResponse<>(result));
+        } catch (Exception e) {
+            logger.error("Error retrieving KYC submissions", e);
+            return ResponseEntity.status(500).body(new ApiResponse<>("Error: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get details of a specific KYC submission
+     */
+    @GetMapping("/{kycId}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getKycDetails(
+            @PathVariable(required = true) Long kycId,
+            HttpServletRequest request) {
+        try {
+            if (!isAdminUser(request)) {
+                return ResponseEntity.status(403).body(new ApiResponse<>("Forbidden: Admin access required"));
+            }
+
+            Optional<KycVerification> kycOpt = kycRepository.findById(java.util.Objects.requireNonNull(kycId));
+            if (kycOpt.isEmpty()) {
+                return ResponseEntity.status(404).body(new ApiResponse<>("KYC submission not found"));
+            }
+
+            KycVerification kyc = kycOpt.get();
+            Optional<User> user = userRepository.findById(java.util.Objects.requireNonNull(kyc.getUserId()));
+
+            Map<String, Object> details = Map.ofEntries(
+                    Map.entry("kycId", kyc.getId()),
+                    Map.entry("userId", kyc.getUserId()),
+                    Map.entry("userName", user.map(User::getName).orElse("Unknown")),
+                    Map.entry("userEmail", user.map(User::getEmail).orElse("N/A")),
+                    Map.entry("userPhone", user.map(User::getPhone).orElse("N/A")),
+                    Map.entry("aadhaarNumber", maskNumber(kyc.getAadhaarNumber())),
+                    Map.entry("drivingLicenseNumber", maskNumber(kyc.getDrivingLicenseNumber())),
+                    Map.entry("licenseExpiryDate", kyc.getLicenseExpiryDate()),
+                    Map.entry("streetAddress", kyc.getStreetAddress()),
+                    Map.entry("city", kyc.getCity()),
+                    Map.entry("state", kyc.getState()),
+                    Map.entry("pincode", kyc.getPincode()),
+                    Map.entry("verificationStatus", kyc.getVerificationStatus()),
+                    Map.entry("rejectionReason", kyc.getRejectionReason()),
+                    Map.entry("createdAt", kyc.getCreatedAt()),
+                    Map.entry("verifiedAt", kyc.getVerifiedAt()),
+                    Map.entry("verifiedByAdmin", kyc.getVerifiedByAdmin()),
+                    Map.entry("kycPdfUrl", kyc.getKycPdfUrl()));
+
+            return ResponseEntity.ok(new ApiResponse<>(details));
+        } catch (Exception e) {
+            logger.error("Error retrieving KYC details for kycId: {}", kycId, e);
+            return ResponseEntity.status(500).body(new ApiResponse<>("Error: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Approve KYC submission
+     */
+    @PostMapping("/{kycId}/approve")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> approveKyc(
+            @PathVariable(required = true) Long kycId,
+            HttpServletRequest request) {
+        try {
+            Long adminId = getAdminId(request);
+            if (adminId == null) {
+                return ResponseEntity.status(403).body(new ApiResponse<>("Forbidden: Admin access required"));
+            }
+
+            Optional<KycVerification> kycOpt = kycRepository.findById(java.util.Objects.requireNonNull(kycId));
+            if (kycOpt.isEmpty()) {
+                return ResponseEntity.status(404).body(new ApiResponse<>("KYC submission not found"));
+            }
+
+            KycVerification kyc = kycOpt.get();
+            Optional<User> user = userRepository.findById(java.util.Objects.requireNonNull(kyc.getUserId()));
+
+            if (user.isEmpty()) {
+                return ResponseEntity.status(404).body(new ApiResponse<>("User not found"));
+            }
+
+            // Update KYC status
+            kyc.setVerificationStatus("approved");
+            kyc.setVerifiedByAdmin(adminId);
+            kyc.setVerifiedAt(LocalDateTime.now());
+            kycRepository.save(kyc);
+
+            // Update user KYC status
+            User userData = user.get();
+            userData.setKycStatus("approved");
+            userRepository.save(userData);
+
+            // Send approval email
+            emailService.sendKycApprovalNotification(userData.getName(), userData.getEmail());
+
+            logger.info("KYC {} approved by admin {}", kycId, adminId);
+            return ResponseEntity.ok(new ApiResponse<>(Map.of(
+                    "message", "KYC approved successfully",
+                    "kycId", kycId,
+                    "verificationStatus", "approved",
+                    "approvedAt", kyc.getVerifiedAt())));
+        } catch (Exception e) {
+            logger.error("Error approving KYC {}", kycId, e);
+            return ResponseEntity.status(500).body(new ApiResponse<>("Error: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Reject KYC submission
+     */
+    @PostMapping("/{kycId}/reject")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> rejectKyc(
+            @PathVariable(required = true) Long kycId,
+            @RequestBody Map<String, String> payload,
+            HttpServletRequest request) {
+        try {
+            Long adminId = getAdminId(request);
+            if (adminId == null) {
+                return ResponseEntity.status(403).body(new ApiResponse<>("Forbidden: Admin access required"));
+            }
+
+            String rejectionReason = payload.getOrDefault("rejectionReason", "Documents do not meet requirements");
+
+            Optional<KycVerification> kycOpt = kycRepository.findById(java.util.Objects.requireNonNull(kycId));
+            if (kycOpt.isEmpty()) {
+                return ResponseEntity.status(404).body(new ApiResponse<>("KYC submission not found"));
+            }
+
+            KycVerification kyc = kycOpt.get();
+            Optional<User> user = userRepository.findById(java.util.Objects.requireNonNull(kyc.getUserId()));
+
+            if (user.isEmpty()) {
+                return ResponseEntity.status(404).body(new ApiResponse<>("User not found"));
+            }
+
+            // Update KYC status
+            kyc.setVerificationStatus("rejected");
+            kyc.setRejectionReason(rejectionReason);
+            kyc.setVerifiedByAdmin(adminId);
+            kyc.setVerifiedAt(LocalDateTime.now());
+            kycRepository.save(kyc);
+
+            // Update user KYC status
+            User userData = user.get();
+            userData.setKycStatus("rejected");
+            userRepository.save(userData);
+
+            // Send rejection email
+            emailService.sendKycRejectionNotification(userData.getName(), userData.getEmail(), rejectionReason);
+
+            logger.info("KYC {} rejected by admin {} with reason: {}", kycId, adminId, rejectionReason);
+            return ResponseEntity.ok(new ApiResponse<>(Map.of(
+                    "message", "KYC rejected successfully",
+                    "kycId", kycId,
+                    "verificationStatus", "rejected",
+                    "rejectionReason", rejectionReason)));
+        } catch (Exception e) {
+            logger.error("Error rejecting KYC {}", kycId, e);
+            return ResponseEntity.status(500).body(new ApiResponse<>("Error: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Download KYC PDF for admin review
+     */
+    @GetMapping("/{kycId}/pdf")
+    public ResponseEntity<?> getKycPdf(
+            @PathVariable(required = true) Long kycId,
+            HttpServletRequest request) {
+        try {
+            if (!isAdminUser(request)) {
+                return ResponseEntity.status(403).body(new ApiResponse<>("Forbidden: Admin access required"));
+            }
+
+            Optional<KycVerification> kycOpt = kycRepository.findById(java.util.Objects.requireNonNull(kycId));
+            if (kycOpt.isEmpty()) {
+                return ResponseEntity.status(404).body(new ApiResponse<>("KYC submission not found"));
+            }
+
+            KycVerification kyc = kycOpt.get();
+            String pdfUrl = kyc.getKycPdfUrl();
+
+            if (pdfUrl == null || pdfUrl.isEmpty()) {
+                return ResponseEntity.status(404).body(new ApiResponse<>("PDF not available for this KYC"));
+            }
+
+            // Load PDF from file system
+            if (pdfUrl.startsWith("backend-uploads")) {
+                Path filePath = Paths.get(pdfUrl);
+                if (Files.exists(filePath) && Files.isRegularFile(filePath)) {
+                    byte[] pdfBytes = Files.readAllBytes(filePath);
+                    return ResponseEntity.ok()
+                            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=kyc_" + kycId + ".pdf")
+                            .contentType(java.util.Objects.requireNonNull(MediaType.APPLICATION_PDF))
+                            .body(pdfBytes);
+                }
+            }
+
+            return ResponseEntity.status(404).body(new ApiResponse<>("PDF file not found"));
+        } catch (Exception e) {
+            logger.error("Error downloading KYC PDF for kycId: {}", kycId, e);
+            return ResponseEntity.status(500).body(new ApiResponse<>("Error: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Helper method to check if request is from admin user
+     */
+    private boolean isAdminUser(HttpServletRequest request) {
+        try {
+            Object roleObj = request.getAttribute("userRole");
+            if (roleObj != null) {
+                return "admin".equalsIgnoreCase(roleObj.toString());
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Helper method to get admin ID from request
+     */
+    private Long getAdminId(HttpServletRequest request) {
+        if (!isAdminUser(request)) {
+            return null;
+        }
+        try {
+            Object userIdObj = request.getAttribute("userId");
+            if (userIdObj == null) {
+                return null;
+            }
+            if (userIdObj instanceof Long) {
+                return (Long) userIdObj;
+            }
+            return Long.parseLong(userIdObj.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Mask sensitive numbers - show only last 4 digits
+     */
+    private String maskNumber(String number) {
+        if (number == null || number.length() <= 4) {
+            return number;
+        }
+        return "**** **** " + number.substring(number.length() - 4);
+    }
+}
