@@ -79,7 +79,6 @@ desktop.ini
 .vscode/extensions.json
 
 # Node
-package-lock.json
 yarn.lock
 
 # App specific
