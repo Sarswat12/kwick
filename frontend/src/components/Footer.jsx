@@ -14,7 +14,7 @@ export const Footer = ({ onNavigate }) => {
           <div>
             <h3 className="text-red-500 mb-4">KWICK</h3>
             <p className="text-gray-400 mb-4">
-              India's leading EV rental platform empowering delivery partners to earn ₹15,000-₹50,000 monthly.
+              India's leading EV rental platform empowering delivery partners to earn up to ₹75,000 monthly.
             </p>
             <div className="flex space-x-4">
               <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-red-500 transition-colors">
@@ -107,11 +107,11 @@ export const Footer = ({ onNavigate }) => {
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="w-5 h-5 text-red-500 flex-shrink-0"/>
-                <p className="text-gray-400">+91 98765 43210</p>
+                <p className="text-gray-400">+91 9289484832</p>
               </div>
               <div className="flex items-center space-x-3">
                 <Mail className="w-5 h-5 text-red-500 flex-shrink-0"/>
-                <p className="text-gray-400">support@kwick.in</p>
+                <p className="text-gray-400">contact@kwick.in</p>
               </div>
             </div>
           </div>

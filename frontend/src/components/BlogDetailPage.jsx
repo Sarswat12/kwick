@@ -35,17 +35,17 @@ export const BlogDetailPage = ({ blogId, onNavigate }) => {
                 break;
         }
     };
-    return (<div className="min-h-screen bg-white pt-24 pb-20">
-      <div className="container mx-auto px-4">
-        {/* Back Button */}
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
-          <Button onClick={() => onNavigate('blog')} variant="ghost" className="group">
-            <ArrowLeft className="mr-2 w-4 h-4 group-hover:-translate-x-1 transition-transform"/>
-            Back to All Posts
-          </Button>
-        </motion.div>
-
-        <div className="max-w-4xl mx-auto">
+    return (
+      <div className="min-h-screen bg-white pt-24 pb-20 flex flex-col">
+        <div className="flex-1 flex flex-col items-center w-full">
+          <div className="w-full max-w-4xl px-4">
+            {/* Back Button */}
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
+              <Button onClick={() => onNavigate('blog')} variant="ghost" className="group">
+                <ArrowLeft className="mr-2 w-4 h-4 group-hover:-translate-x-1 transition-transform"/>
+                Back to All Posts
+              </Button>
+            </motion.div>
           {/* Header */}
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
             <Badge className="mb-4 bg-red-500 text-white">{blog.category}</Badge>
@@ -189,7 +189,8 @@ export const BlogDetailPage = ({ blogId, onNavigate }) => {
               </CardContent>
             </Card>
           </motion.div>
+          </div>
         </div>
       </div>
-    </div>);
+    );
 };

@@ -29,52 +29,56 @@ function StepImageCarousel() {
     </div>);
 }
 export function NewLandingPage({ onNavigate }) {
-    const [currentPair, setCurrentPair] = useState(0);
+	const [currentPair, setCurrentPair] = useState(0);
+	// Track which cards have stopped animation
+	const [stoppedCards, setStoppedCards] = useState([false, false]);
     const earningOptions = [
         {
             title: "Food Delivery",
-            earning: "₹15,000-₹25,000/month",
+            earning: "up to ₹30,000/month",
             description: "Zomato, Swiggy, Uber Eats",
-            details: "Peak hours: 12-3PM, 7-11PM",
+            details: "Optimize your earnings during peak meal hours with our long-range EV rentals. Perfect for flexible, short-burst delivery shifts.",
             image: riderImage2,
             gradient: "from-red-500 to-orange-600"
         },
         {
             title: "E-commerce Delivery",
-            earning: "₹20,000-₹35,000/month",
+            earning: "up to ₹45,000/month",
             description: "Amazon, Flipkart, Myntra",
-            details: "Full-time earning potential",
+            details: "Become a 10-minute delivery specialist in India’s fastest-growing grocery logistics sector. Benefit from high-frequency orders in hyper-local zones.",
             image: riderImage1,
             gradient: "from-blue-500 to-indigo-600"
         },
         {
             title: "Quick Commerce",
-            earning: "₹18,000-₹30,000/month",
+            earning: "up to ₹40,000/month",
             description: "Blinkit, Zepto, Instamart",
-            details: "10-minute delivery specialist",
+            details: "Become a 10-minute delivery specialist in India’s fastest-growing grocery logistics sector. Benefit from high-frequency orders in hyper-local zones.",
             image: riderImage3,
             gradient: "from-yellow-500 to-amber-600"
         },
         {
-            title: "Premium Services",
-            earning: "₹25,000-₹50,000/month",
-            description: "Corporate, Medical",
-            details: "High-value deliveries",
+            title: "Ride Sharing & Porter Services",
+            earning: " up to ₹75,000",
+            description: "Rapido, Ola, Porter, Dunzo, Uber",
+            details: "Maximize your earnings by switching between ride sharing and Porter services. Enjoy unlimited battery swaps and zero fuel costs to keep your business running all day.",
             image: riderImage4,
             gradient: "from-purple-500 to-pink-600"
         }
     ];
-    // Auto-swap every 3 seconds
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentPair((prev) => (prev + 2 >= earningOptions.length ? 0 : prev + 2));
-        }, 3000);
-        return () => clearInterval(interval);
-    }, []);
-    const visibleOptions = [
-        earningOptions[currentPair],
-        earningOptions[currentPair + 1]
-    ];
+	// Auto-swap every 6 seconds, but pause if either card is stopped
+	useEffect(() => {
+		const interval = setInterval(() => {
+			if (!stoppedCards[0] && !stoppedCards[1]) {
+				setCurrentPair((prev) => (prev + 2 >= earningOptions.length ? 0 : prev + 2));
+			}
+		}, 6000);
+		return () => clearInterval(interval);
+	}, [stoppedCards, earningOptions.length]);
+	const visibleOptions = [
+		earningOptions[currentPair],
+		earningOptions[(currentPair + 1) % earningOptions.length]
+	];
     return (<div className="min-h-screen bg-white mt-8">
 			{/* Hero Section with Carousel Background */}
 			<HeroCarousel>
@@ -86,12 +90,12 @@ export function NewLandingPage({ onNavigate }) {
 							</Badge>
               
 							<h1 className="text-5xl md:text-6xl lg:text-7xl mb-6 drop-shadow-2xl">
-								Rent <span className="text-white">KWICK</span> EV.<br />
-								<span className="text-yellow-300">Earn Lakhs.</span>
+								Ride <span className="text-white">KWICK</span> EV.<br />
+								<span className="text-yellow-300">Earn in Lakhs.</span>
 							</h1>
               
 							<p className="text-xl md:text-2xl mb-8 leading-relaxed drop-shadow-lg max-w-3xl mx-auto">
-								Transform your life with our premium electric scooters. Earn <span className="text-yellow-300">₹15,000-₹50,000 monthly</span> through delivery services. Zero fuel costs, unlimited battery swaps, 100% eco-friendly.
+								Maximize your income with India’s leading EV rental for Delivery. Earn <span className="text-yellow-300">up to ₹75,000 monthly</span> with premium electric scooters designed for high-performance logistics. Enjoy <span className="text-yellow-300">Zero fuel costs, unlimited battery swaps,</span> 100% eco-friendly rides.
 							</p>
 
 							<div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
@@ -101,6 +105,10 @@ export function NewLandingPage({ onNavigate }) {
 								</Button>
 								<Button size="lg" variant="outline" onClick={() => onNavigate("battery-stations")} className="border-white text-white hover:bg-white/20 backdrop-blur-sm text-lg px-8 py-6">
 									Find Battery Stations
+								</Button>
+								<Button size="lg" onClick={() => onNavigate("pricing")} className="bg-white text-red-500 hover:bg-gray-100 text-lg px-8 py-6 shadow-2xl">
+									Request a Callback
+									<ChevronRight className="ml-2 w-5 h-5"/>
 								</Button>
 							</div>
 
@@ -132,7 +140,7 @@ export function NewLandingPage({ onNavigate }) {
 								<div className="space-y-8">
 									{[
             { label: "Register to Go", page: "register" },
-            { label: "Quick Identity Check", page: "identity" },
+            { label: "Kwick Identity Check", page: "identity" },
             { label: "Choose Your Ride", page: "choose" },
             { label: "Secure to Pay", page: "payment" },
             { label: "Ride Out", page: "rideout" }
@@ -164,7 +172,7 @@ export function NewLandingPage({ onNavigate }) {
 						{[
             { icon: Users, label: "Active Riders", value: "100+", color: "bg-blue-500" },
             { icon: MapPin, label: "Battery Stations", value: "500+", color: "bg-green-500" },
-            { icon: DollarSign, label: "Monthly Earnings", value: "₹2.5L+", color: "bg-purple-500" },
+            { icon: DollarSign, label: "B2B Partners", value: "10+", color: "bg-purple-500" },
             { icon: Leaf, label: "Eco-Friendly", value: "100%", color: "bg-green-600" }
         ].map((stat, index) => (<motion.div key={index} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.1 }} whileHover={{ scale: 1.05 }}>
 								<Card className="text-center border-2 hover:border-red-500 transition-all duration-300">
@@ -205,12 +213,28 @@ export function NewLandingPage({ onNavigate }) {
 					{/* Animated Earning Cards with Images */}
 					<div className="grid md:grid-cols-2 gap-8 mb-12">
 						<AnimatePresence mode="sync">
-							{visibleOptions.map((option, index) => (<motion.div key={`${currentPair}-${index}`} initial={{ opacity: 0, x: index === 0 ? -100 : 100, rotateY: 90 }} animate={{ opacity: 1, x: 0, rotateY: 0 }} exit={{ opacity: 0, x: index === 0 ? 100 : -100, rotateY: -90 }} transition={{ duration: 0.6, ease: "easeInOut" }} className="relative h-[400px] rounded-3xl overflow-hidden shadow-2xl group">
+							{visibleOptions.map((option, index) => (
+								<motion.div
+									key={`${currentPair}-${index}`}
+									initial={{ opacity: 0, x: index === 0 ? -100 : 100, rotateY: 90 }}
+									animate={{ opacity: 1, x: 0, rotateY: 0 }}
+									exit={{ opacity: 0, x: index === 0 ? 100 : -100, rotateY: -90 }}
+									transition={{ duration: 0.4, ease: "easeInOut" }}
+									className="relative h-[400px] rounded-3xl overflow-hidden shadow-2xl group"
+									onClick={() => {
+										setStoppedCards((prev) => {
+											const updated = [...prev];
+											updated[index] = true;
+											return updated;
+										});
+									}}
+									style={{ cursor: stoppedCards[index] ? 'default' : 'pointer' }}
+								>
 									{/* Background Image */}
 									<div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style={{
-                backgroundImage: `url(${option.image})`,
-                filter: 'blur(1px) brightness(0.5)'
-            }}></div>
+										backgroundImage: `url(${option.image})`,
+										filter: 'blur(1px) brightness(0.5)'
+									}}></div>
 
 									{/* Gradient Overlay */}
 									<div className={`absolute inset-0 bg-gradient-to-br ${option.gradient} opacity-80`}></div>
@@ -218,14 +242,18 @@ export function NewLandingPage({ onNavigate }) {
 									{/* Content */}
 									<div className="relative h-full p-8 flex flex-col justify-between text-white">
 										<div>
-											<motion.div animate={{
-                scale: [1, 1.05, 1],
-                rotate: [0, 5, -5, 0]
-            }} transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut"
-            }} className="inline-block">
+											<motion.div
+												animate={stoppedCards[index] ? {} : {
+													scale: [1, 1.05, 1],
+													rotate: [0, 5, -5, 0]
+												}}
+												transition={stoppedCards[index] ? undefined : {
+													duration: 10, // much slower
+													repeat: Infinity,
+													ease: "easeInOut"
+												}}
+												className="inline-block"
+											>
 												<Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 text-lg px-4 py-2">
 													{option.title}
 												</Badge>
@@ -240,7 +268,8 @@ export function NewLandingPage({ onNavigate }) {
 											<img src={option.image} alt={option.title} className="w-full h-full object-contain filter drop-shadow-2xl"/>
 										</div>
 									</div>
-								</motion.div>))}
+								</motion.div>
+							))}
 						</AnimatePresence>
 					</div>
 
@@ -276,21 +305,21 @@ export function NewLandingPage({ onNavigate }) {
 				<div className="container mx-auto px-4">
 					<motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
 						<h2 className="text-4xl text-black mb-4">Why Choose KWICK?</h2>
-						<p className="text-xl text-gray-600">Everything you need to succeed</p>
+						<p className="text-xl text-gray-600">India's leading EV rental platform for delivery partners.</p>
 					</motion.div>
 
 					<div className="grid md:grid-cols-3 gap-8">
 						{[
             {
                 icon: TrendingUp,
-                title: "Maximum Earnings",
-                description: "Earn ₹15,000-₹50,000 monthly with zero fuel costs",
+                title: "Maximize Earnings",
+                description: "Earn up to ₹75,000 monthly with zero fuel costs",
                 color: "bg-green-500"
             },
             {
                 icon: Battery,
                 title: "Unlimited Swaps",
-                description: "50+ battery stations, swap in under 2 minutes",
+                description: "500+ battery stations, swap in under 2 minutes",
                 color: "bg-blue-500"
             },
             {
@@ -333,10 +362,10 @@ export function NewLandingPage({ onNavigate }) {
                 rating: 5
             },
             {
-                name: "Priya Sharma",
-                role: "E-commerce Delivery",
-                earning: "₹38,000/month",
-                review: "Best decision ever. The battery swap stations are everywhere!",
+                name: "Deepak Verma ",
+                role: "Ride Sharing Partner",
+                earning: "₹55,000/month",
+                review: "Switching to transportation services was the best move. I earn more every trip because I spend zero on petrol",
                 rating: 5
             },
             {
@@ -382,18 +411,19 @@ export function NewLandingPage({ onNavigate }) {
 				<div className="container mx-auto px-4 text-center">
 					<motion.div initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}>
 						<h2 className="text-4xl md:text-5xl text-white mb-6">
-							Ready to Start Earning?
+							Ready to maximize your income?
 						</h2>
 						<p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-							Join 500+ delivery partners already earning lakhs with KWICK
+							Join our growing community of 100+ delivery partners who are boosting their earnings with zero fuel costs and unlimited battery swaps.
 						</p>
 						<div className="flex flex-col sm:flex-row gap-4 justify-center">
 							<Button size="lg" onClick={() => onNavigate("pricing")} className="bg-white text-red-500 hover:bg-gray-100">
 								View Plans & Pricing
 								<ChevronRight className="ml-2 w-5 h-5"/>
 							</Button>
-							<Button size="lg" variant="outline" onClick={() => onNavigate("contact")} className="border-white text-white hover:bg-white/10">
+							<Button size="lg" onClick={() => onNavigate("contact")} className="bg-white text-red-500 hover:bg-gray-100">
 								Contact Us
+								<ChevronRight className="ml-2 w-5 h-5"/>
 							</Button>
 						</div>
 					</motion.div>

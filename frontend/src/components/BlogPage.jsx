@@ -3,9 +3,10 @@ import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Calendar, User, ArrowRight, TrendingUp } from "lucide-react";
+import { Link } from "react-router-dom";
 const blogPosts = [
-    {
-        id: 1,
+  {
+    id: 'BLOG001',
         title: "How to Earn ₹50,000 Monthly with KWICK EV",
         excerpt: "Learn the strategies our top riders use to maximize their earnings through multiple delivery platforms.",
         category: "Earnings Guide",
@@ -16,7 +17,7 @@ const blogPosts = [
         featured: true
     },
     {
-        id: 2,
+      id: 'BLOG002',
         title: "Battery Swapping 101: Everything You Need to Know",
         excerpt: "Complete guide to using KWICK's 50+ battery swap stations across Delhi NCR.",
         category: "Guide",
@@ -26,7 +27,7 @@ const blogPosts = [
         image: "https://images.unsplash.com/photo-1660804369326-ead78d89b07d?w=800"
     },
     {
-        id: 3,
+      id: 'BLOG003',
         title: "Success Story: From ₹15K to ₹45K in 6 Months",
         excerpt: "Meet Rajesh Kumar who transformed his life with KWICK EV rental platform.",
         category: "Success Story",
@@ -36,7 +37,7 @@ const blogPosts = [
         image: "https://images.unsplash.com/photo-1607130232670-52123ba5be5c?w=800"
     },
     {
-        id: 4,
+      id: 'BLOG004',
         title: "Environmental Impact: 5000kg CO2 Saved Monthly",
         excerpt: "How KWICK riders are contributing to a cleaner, greener India every single day.",
         category: "Environment",
@@ -46,7 +47,7 @@ const blogPosts = [
         image: "https://images.unsplash.com/photo-1675415782443-32685e238b1c?w=800"
     },
     {
-        id: 5,
+      id: 'BLOG005',
         title: "Top 10 Tips for New KWICK Riders",
         excerpt: "Essential advice for delivery partners just starting their journey with KWICK.",
         category: "Tips & Tricks",
@@ -56,7 +57,7 @@ const blogPosts = [
         image: "https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=800"
     },
     {
-        id: 6,
+      id: 'BLOG006',
         title: "Understanding Your Rental Agreement",
         excerpt: "A comprehensive breakdown of KWICK's flexible rental plans and terms.",
         category: "Legal",
@@ -67,22 +68,9 @@ const blogPosts = [
     }
 ];
 export function BlogPage({ onNavigate }) {
-    const handleReadMore = (postId) => {
-        // Build blog id in the same format used by BlogContext (e.g. BLOG001)
-        const blogId = `BLOG${String(postId).padStart(3, '0')}`;
-        // If parent provided onNavigate, use the app router convention 'blog-detail-<id>'
-        if (onNavigate) {
-            onNavigate(`blog-detail-${blogId}`);
-            // Delay the scroll a bit so the new page can render before we scroll to top
-            setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 80);
-            return;
-        }
-        // Fallback behavior
-        setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 80);
-        console.log(`Read post ${blogId}`);
-    };
+    // No-op: navigation handled by Link
     return (<div className="min-h-screen bg-white pt-24 pb-20">
-      <div className="container mx-auto px-4">
+      <div className="container">
         {/* Hero Section */}
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16">
           <Badge className="mb-4 bg-red-100 text-red-600 border-red-200">
@@ -97,7 +85,8 @@ export function BlogPage({ onNavigate }) {
         </motion.div>
 
         {/* Featured Post */}
-        {blogPosts.filter(post => post.featured).map((post, index) => (<motion.div key={post.id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-16">
+        {blogPosts.filter(post => post.featured).map((post, index) => (
+          <motion.div key={post.id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-16">
             <Card className="overflow-hidden border-2 hover:border-red-500 transition-all hover:shadow-2xl">
               <div className="grid md:grid-cols-2">
                 <div className="h-64 md:h-auto bg-cover bg-center" style={{ backgroundImage: `url(${post.image})` }}/>
@@ -116,18 +105,20 @@ export function BlogPage({ onNavigate }) {
                     </div>
                     <span>{post.readTime}</span>
                   </div>
-                  <Button className="w-fit bg-red-500 hover:bg-red-600" onClick={() => handleReadMore(post.id)}>
+                  <Link to={`/blog/${post.id}`} className="w-fit bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded flex items-center gap-2">
                     Read Full Article
                     <ArrowRight className="ml-2 w-4 h-4"/>
-                  </Button>
+                  </Link>
                 </CardContent>
               </div>
             </Card>
-          </motion.div>))}
+          </motion.div>
+        ))}
 
         {/* Blog Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {blogPosts.filter(post => !post.featured).map((post, index) => (<motion.div key={post.id} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.1 }} whileHover={{ y: -10 }}>
+          {blogPosts.filter(post => !post.featured).map((post, index) => (
+            <motion.div key={post.id} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.1 }} whileHover={{ y: -10 }}>
               <Card className="h-full hover:shadow-2xl transition-all overflow-hidden border hover:border-red-500">
                 <div className="h-48 bg-cover bg-center" style={{ backgroundImage: `url(${post.image})` }}/>
                 <CardContent className="p-6">
@@ -141,13 +132,14 @@ export function BlogPage({ onNavigate }) {
                     </div>
                     <span>{post.readTime}</span>
                   </div>
-                  <Button variant="ghost" className="w-full group" onClick={() => handleReadMore(post.id)}>
+                  <Link to={`/blog/${post.id}`} className="w-full group flex items-center justify-center gap-2 text-red-500 hover:text-red-700">
                     Read More
                     <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform"/>
-                  </Button>
+                  </Link>
                 </CardContent>
               </Card>
-            </motion.div>))}
+            </motion.div>
+          ))}
         </div>
 
         {/* Categories */}
