@@ -120,10 +120,11 @@ export function VehiclesPage({ onNavigate }) {
 
         {/* Vehicle Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {vehicles.map((vehicle, index) => (<motion.div key={index} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.1 }} whileHover={{ y: -8 }}>
+          {vehicles.map((vehicle, index) => (
+            <motion.div key={index} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.1 }} whileHover={{ y: -8 }}>
               <Card className={`overflow-hidden h-full flex flex-col ${vehicle.available ? 'hover:border-primary' : 'opacity-75'} transition-all duration-300`}>
-                <div className="aspect-video bg-gradient-to-br from-muted to-muted-foreground/20 relative overflow-hidden">
-                  <ImageWithFallback src={vehicle.image} alt={vehicle.name} className="w-full h-full object-cover"/>
+                <div className="bg-gradient-to-br from-muted to-muted-foreground/20 relative overflow-hidden" style={{maxWidth:'100%',maxHeight:'100%',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <ImageWithFallback src={vehicle.image} alt={vehicle.name} className="w-full h-full object-contain max-w-full max-h-full" style={{objectFit:'contain',maxWidth:'100%',maxHeight:'100%'}}/>
                   <div className="absolute top-4 right-4">
                     {vehicle.available ? (<Badge className="bg-green-500 text-white">Available</Badge>) : (<Badge className="bg-gray-500 text-white">Not Available</Badge>)}
                   </div>

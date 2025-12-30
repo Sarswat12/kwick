@@ -21,7 +21,12 @@ import { Toaster } from './components/ui/sonner';
 import AdminTopbar from './components/AdminTopbar';
 import { useAuth } from './contexts/AuthContext';
 import { AdminLogin } from './components/AdminLogin';
-import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate, useParams } from 'react-router-dom';
+// Wrapper to extract blogId from URL and pass to BlogDetailPage
+function BlogDetailPageWrapper(props) {
+  const { id } = useParams();
+  return <BlogDetailPage blogId={id} {...props} />;
+}
 import ProtectedRoute from './components/ProtectedRoute';
 // Additional page imports (some were missing and caused ReferenceErrors)
 import { MyFleetPage } from './components/MyFleetPage';
@@ -67,6 +72,11 @@ export default function App() {
             case 'admin-dashboard': return '/admin';
             case 'admin-users': return '/admin/users';
             case 'admin-kyc': return '/admin/kyc';
+            case 'admin-payments': return '/admin/payments';
+            case 'admin-fleet': return '/admin/fleet';
+            case 'admin-notifications': return '/admin/notifications';
+            case 'admin-blog': return '/admin/blog';
+            case 'admin-careers': return '/admin/careers';
             default: return '/';
         }
     };
@@ -114,7 +124,7 @@ export default function App() {
                 <Route path="/pricing" element={<PricingPage onNavigate={handleNavigate}/> } />
                 <Route path="/battery-stations" element={<BatteryStationsPage onNavigate={handleNavigate}/> } />
                 <Route path="/blog" element={<BlogPage onNavigate={handleNavigate}/> } />
-                <Route path="/blog/:id" element={<BlogDetailPage onNavigate={handleNavigate}/> } />
+                <Route path="/blog/:id" element={<BlogDetailPageWrapper onNavigate={handleNavigate}/> } />
                 <Route path="/careers" element={<CareersPage onNavigate={handleNavigate}/> } />
                 <Route path="/contact" element={<EnhancedContactPage onNavigate={handleNavigate}/> } />
 

@@ -1,7 +1,19 @@
+import { useState } from "react";
 import { motion } from "motion/react";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose
+} from "./ui/dialog";
 import { MapPin, Clock, DollarSign, Users, Briefcase, TrendingUp, Heart, Zap, Leaf, ArrowRight } from "lucide-react";
 const jobOpenings = [
     {
@@ -10,7 +22,7 @@ const jobOpenings = [
         department: "Operations",
         location: "Noida Sector 112",
         type: "Full-time",
-        salary: "₹40,000 - ₹60,000/month",
+        salary: "₹20,000 - ₹30,000/month",
         description: "Manage our fleet of 500+ electric scooters across Delhi NCR. Ensure optimal vehicle availability and maintenance.",
         requirements: ["3+ years fleet management", "Valid driving license", "Excel proficiency"],
         featured: true
@@ -21,7 +33,7 @@ const jobOpenings = [
         department: "Support",
         location: "Noida (Remote)",
         type: "Full-time",
-        salary: "₹25,000 - ₹35,000/month",
+        salary: "₹15,000 - ₹25,000/month",
         description: "Provide world-class support to our delivery partners via phone, chat, and email.",
         requirements: ["Excellent communication", "Hindi & English fluency", "Customer-first mindset"],
         featured: false
@@ -32,7 +44,7 @@ const jobOpenings = [
         department: "Technical",
         location: "Multiple Locations",
         type: "Full-time",
-        salary: "₹30,000 - ₹45,000/month",
+        salary: "₹10,000 - ₹30,000/month",
         description: "Maintain and service battery swap stations. Ensure 99.9% uptime for our riders.",
         requirements: ["Electrical background", "Basic troubleshooting", "Willingness to travel"],
         featured: false
@@ -43,7 +55,7 @@ const jobOpenings = [
         department: "Marketing",
         location: "Noida Sector 112",
         type: "Full-time",
-        salary: "₹50,000 - ₹80,000/month",
+        salary: "₹20,000 - ₹30,000/month",
         description: "Lead marketing campaigns to attract new riders and grow KWICK's brand presence.",
         requirements: ["5+ years marketing", "Digital marketing expertise", "Data-driven approach"],
         featured: true
@@ -54,7 +66,7 @@ const jobOpenings = [
         department: "Technology",
         location: "Noida (Hybrid)",
         type: "Full-time",
-        salary: "₹60,000 - ₹1,00,000/month",
+        salary: "₹25,000 - ₹45,000/month",
         description: "Build and scale KWICK's platform. Work with React, Node.js, and cloud technologies.",
         requirements: ["3+ years development", "React & Node.js", "Startup experience preferred"],
         featured: false
@@ -65,7 +77,7 @@ const jobOpenings = [
         department: "Operations",
         location: "Delhi NCR",
         type: "Full-time",
-        salary: "₹35,000 - ₹50,000/month",
+        salary: "₹25,000 - ₹35,000/month",
         description: "Coordinate daily operations, manage battery logistics, and support field teams.",
         requirements: ["2+ years operations", "Problem-solving skills", "Field work experience"],
         featured: false
@@ -104,8 +116,34 @@ const benefits = [
     }
 ];
 export function CareersPage({ onNavigate }) {
-    return (<div className="min-h-screen bg-white pt-24 pb-20">
-      <div className="container mx-auto px-4">
+  const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", file: null });
+  const [submitted, setSubmitted] = useState(false);
+
+  function handleChange(e) {
+    const { name, value, files } = e.target;
+    setForm(f => ({
+      ...f,
+      [name]: files ? files[0] : value
+    }));
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    setSubmitted(true);
+    // Here you would send the form data to the backend
+  }
+
+  function handleDialogOpenChange(open) {
+    setResumeDialogOpen(open);
+    if (!open) {
+      setSubmitted(false);
+      setForm({ name: "", email: "", file: null });
+    }
+  }
+
+  return (<div className="min-h-screen bg-white pt-24 pb-20">
+    <div className="container mx-auto px-4">
         {/* Hero Section */}
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16">
           <Badge className="mb-4 bg-green-100 text-green-700 border-green-200">
@@ -204,10 +242,46 @@ export function CareersPage({ onNavigate }) {
               <p className="text-lg mb-8 text-white/90 max-w-2xl mx-auto">
                 We're always looking for talented individuals to join our mission. Send us your resume and tell us how you can contribute to KWICK's growth.
               </p>
-              <Button size="lg" className="bg-white text-red-500 hover:bg-gray-100">
-                Send Your Resume
-                <ArrowRight className="ml-2 w-5 h-5"/>
-              </Button>
+              <Dialog open={resumeDialogOpen} onOpenChange={handleDialogOpenChange}>
+                <DialogTrigger asChild>
+                  <Button size="lg" className="bg-white text-red-500 hover:bg-gray-100">
+                    Send Your Resume
+                    <ArrowRight className="ml-2 w-5 h-5"/>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Submit Your Resume</DialogTitle>
+                    <DialogDescription>
+                      Fill out the form below and upload your resume. We'll get in touch if there's a fit!
+                    </DialogDescription>
+                  </DialogHeader>
+                  {submitted ? (
+                    <div className="text-green-600 text-center py-8">
+                      <div className="text-2xl mb-2">Thank you for submitting your resume!</div>
+                      <div>We'll review your application and reach out if there's a match.</div>
+                    </div>
+                  ) : (
+                    <form className="space-y-4" onSubmit={handleSubmit}>
+                      <div>
+                        <label className="block mb-1 text-sm font-medium text-gray-700">Name</label>
+                        <Input name="name" value={form.name} onChange={handleChange} required placeholder="Your Name"/>
+                      </div>
+                      <div>
+                        <label className="block mb-1 text-sm font-medium text-gray-700">Email</label>
+                        <Input name="email" type="email" value={form.email} onChange={handleChange} required placeholder="you@email.com"/>
+                      </div>
+                      <div>
+                        <label className="block mb-1 text-sm font-medium text-gray-700">Resume (PDF/DOC)</label>
+                        <Input name="file" type="file" accept=".pdf,.doc,.docx" onChange={handleChange} required/>
+                      </div>
+                      <DialogFooter>
+                        <Button type="submit" className="bg-red-500 text-white hover:bg-red-600 w-full">Submit</Button>
+                      </DialogFooter>
+                    </form>
+                  )}
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
         </motion.div>
@@ -216,10 +290,10 @@ export function CareersPage({ onNavigate }) {
         <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mt-20">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-            { value: "50+", label: "Team Members" },
-            { value: "10+", label: "Cities" },
+            { value: "30+", label: "Team Members" },
+            { value: "5+", label: "Cities" },
             { value: "500+", label: "Riders Supported" },
-            { value: "100%", label: "Eco-Friendly" }
+            { value: "100%*", label: "Eco-Friendly" }
         ].map((stat, index) => (<Card key={index} className="text-center border-2">
                 <CardContent className="p-6">
                   <div className="text-4xl text-red-500 mb-2">{stat.value}</div>

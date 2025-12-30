@@ -74,9 +74,9 @@ export function NewAboutPage({ onNavigate }) {
             {/* Animated Stats */}
             <motion.div className="flex flex-wrap justify-center gap-8 mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
               {[
-            { value: "1000+", label: "Happy Partners", icon: Users },
-            { value: "10+", label: "Cities", icon: MapPin },
-            { value: "50+", label: "Battery Stations", icon: Battery }
+            { value: "100+", label: "Happy Partners", icon: Users },
+            { value: "5+", label: "Cities", icon: MapPin },
+            { value: "500+", label: "Battery Stations", icon: Battery }
         ].map((stat, index) => (<motion.div key={index} className="flex items-center gap-3 bg-white/80 backdrop-blur-md px-6 py-3 rounded-full shadow-lg" whileHover={{ scale: 1.1, rotate: 5 }} transition={{ type: "spring", stiffness: 300 }}>
                   <stat.icon className="w-6 h-6 text-red-500"/>
                   <div className="text-left">
