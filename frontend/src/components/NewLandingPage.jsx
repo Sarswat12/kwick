@@ -4,6 +4,8 @@ import { TrendingUp, Battery, Leaf, Shield, Users, MapPin, DollarSign, ChevronRi
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "./ui/dialog";
+import { Input } from "./ui/input";
 import { HeroCarousel } from "./HeroCarousel";
 import riderImage1 from "../assets/zomato.png";
 import riderImage2 from "../assets/ecommerce.png";
@@ -79,7 +81,46 @@ export function NewLandingPage({ onNavigate }) {
 		earningOptions[currentPair],
 		earningOptions[(currentPair + 1) % earningOptions.length]
 	];
-    return (<div className="min-h-screen bg-white mt-8">
+	const [callbackOpen, setCallbackOpen] = useState(false);
+	const [form, setForm] = useState({ name: "", email: "", phone: "", location: "" });
+	const [submitted, setSubmitted] = useState(false);
+	const [error, setError] = useState("");
+
+	function handleChange(e) {
+		const { name, value } = e.target;
+		setForm(f => ({ ...f, [name]: value }));
+	}
+
+	async function handleSubmit(e) {
+		e.preventDefault();
+		setError("");
+		if (!form.name || !form.email || !form.phone || !form.location) {
+			setError("All fields are required.");
+			return;
+		}
+		try {
+			const res = await fetch("/api/cta-records", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(form)
+			});
+			if (!res.ok) throw new Error("Failed to submit. Try again.");
+			setSubmitted(true);
+		} catch (err) {
+			setError(err.message || "Error submitting form.");
+		}
+	}
+
+	function handleDialogOpenChange(open) {
+		setCallbackOpen(open);
+		if (!open) {
+			setSubmitted(false);
+			setForm({ name: "", email: "", phone: "", location: "" });
+			setError("");
+		}
+	}
+
+	return (<div className="min-h-screen bg-white mt-8">
 			{/* Hero Section with Carousel Background */}
 			<HeroCarousel>
 				<div className="container mx-auto px-4 pt-32 pb-20 flex-1 flex items-center">
@@ -106,10 +147,48 @@ export function NewLandingPage({ onNavigate }) {
 								<Button size="lg" variant="outline" onClick={() => onNavigate("battery-stations")} className="border-white text-white hover:bg-white/20 backdrop-blur-sm text-lg px-8 py-6">
 									Find Battery Stations
 								</Button>
-								<Button size="lg" onClick={() => onNavigate("pricing")} className="bg-white text-red-500 hover:bg-gray-100 text-lg px-8 py-6 shadow-2xl">
-									Request a Callback
-									<ChevronRight className="ml-2 w-5 h-5"/>
-								</Button>
+								<Dialog open={callbackOpen} onOpenChange={handleDialogOpenChange}>
+									<DialogTrigger asChild>
+										<Button size="lg" className="bg-white text-red-500 hover:bg-gray-100 text-lg px-8 py-6 shadow-2xl">
+											Request a Callback
+											<ChevronRight className="ml-2 w-5 h-5"/>
+										</Button>
+									</DialogTrigger>
+									<DialogContent>
+										<DialogHeader>
+											<DialogTitle>Request a Callback</DialogTitle>
+										</DialogHeader>
+										{submitted ? (
+											<div className="text-green-600 text-center py-8">
+												<div className="text-2xl mb-2">Thank you!</div>
+												<div>We received your request. Our team will contact you soon.</div>
+											</div>
+										) : (
+											<form className="space-y-4" onSubmit={handleSubmit}>
+												<div>
+													<label className="block mb-1 text-sm font-medium text-gray-700">Name</label>
+													<Input name="name" value={form.name} onChange={handleChange} required placeholder="Your Name"/>
+												</div>
+												<div>
+													<label className="block mb-1 text-sm font-medium text-gray-700">Email</label>
+													<Input name="email" type="email" value={form.email} onChange={handleChange} required placeholder="you@email.com"/>
+												</div>
+												<div>
+													<label className="block mb-1 text-sm font-medium text-gray-700">Phone</label>
+													<Input name="phone" value={form.phone} onChange={handleChange} required placeholder="Your Phone Number"/>
+												</div>
+												<div>
+													<label className="block mb-1 text-sm font-medium text-gray-700">Location</label>
+													<Input name="location" value={form.location} onChange={handleChange} required placeholder="Your City/Area"/>
+												</div>
+												{error && <div className="text-red-500 text-sm">{error}</div>}
+												<DialogFooter>
+													<Button type="submit" className="bg-red-500 text-white hover:bg-red-600 w-full">Submit</Button>
+												</DialogFooter>
+											</form>
+										)}
+									</DialogContent>
+								</Dialog>
 							</div>
 
 							<div className="flex flex-wrap gap-6 justify-center text-sm text-white/90 bg-black/20 backdrop-blur-md rounded-2xl p-4 max-w-2xl mx-auto">

@@ -40,6 +40,7 @@ import { KYCManagementPanel } from './components/admin/KYCManagementPanel';
 import { PaymentManagementPanel } from './components/admin/PaymentManagementPanel';
 import { FleetManagementPanel } from './components/admin/FleetManagementPanel';
 import { BlogCMSPanel } from './components/admin/BlogCMSPanel';
+import AdminCallbackRequests from './components/admin/AdminCallbackRequests';
 import { CareerCMSPanel } from './components/admin/CareerCMSPanel';
 import { NotificationsPanel } from './components/admin/NotificationsPanel';
 
@@ -150,6 +151,7 @@ export default function App() {
                 <Route path="/admin/payments" element={<PaymentManagementPanel onNavigate={handleNavigate}/> } />
                 <Route path="/admin/fleet" element={<FleetManagementPanel onNavigate={handleNavigate}/> } />
                 <Route path="/admin/blog" element={<BlogCMSPanel onNavigate={handleNavigate}/> } />
+                <Route path="/admin/callback-requests" element={<AdminCallbackRequests /> } />
                 <Route path="/admin/careers" element={<CareerCMSPanel onNavigate={handleNavigate}/> } />
                 <Route path="/admin/notifications" element={<NotificationsPanel onNavigate={handleNavigate}/> } />
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, AlertCircle, DollarSign, FileText, CheckCircle } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -48,6 +48,21 @@ const mockNotifications = [
 export const NotificationsPanel = ({ onNavigate }) => {
     const [notifications, setNotifications] = useState(mockNotifications);
     const [filter, setFilter] = useState('all');
+    const [callbackRequests, setCallbackRequests] = useState([]);
+    const [loadingCallback, setLoadingCallback] = useState(false);
+    const [callbackError, setCallbackError] = useState("");
+
+    useEffect(() => {
+        if (filter === 'callback') {
+          setLoadingCallback(true);
+          fetch('/api/cta-records')
+            .then(res => res.json())
+            .then(setCallbackRequests)
+            .catch(() => setCallbackError("Failed to load callback requests."))
+            .finally(() => setLoadingCallback(false));
+        }
+    }, [filter]);
+
     const markAsRead = (id) => {
         setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
     };
@@ -102,7 +117,7 @@ export const NotificationsPanel = ({ onNavigate }) => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl text-red-500">{urgentCount}</div>
@@ -127,72 +142,104 @@ export const NotificationsPanel = ({ onNavigate }) => {
             <div className="text-sm text-gray-500 mt-1">Unread</div>
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl text-red-500">{callbackRequests.length}</div>
+            <div className="text-sm text-gray-500 mt-1">Callback Requests</div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
       <Tabs value={filter} onValueChange={setFilter} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="unread">Unread</TabsTrigger>
           <TabsTrigger value="payment">Payments</TabsTrigger>
           <TabsTrigger value="kyc">KYC</TabsTrigger>
           <TabsTrigger value="vehicle">Vehicle</TabsTrigger>
+          <TabsTrigger value="callback">Callback Requests</TabsTrigger>
         </TabsList>
 
-        <TabsContent value={filter} className="mt-6">
-          <div className="space-y-3">
-            {filteredNotifications.length > 0 ? (filteredNotifications.map(notification => (<Card key={notification.id} className={`${!notification.read ? 'border-l-4' : ''} ${!notification.read ? `border-l-${getPriorityColor(notification.priority, notification.daysRemaining).replace('bg-', '')}` : ''} ${!notification.read ? 'bg-red-50' : ''}`}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-4">
-                      <div className={`w-10 h-10 rounded-full ${getPriorityColor(notification.priority, notification.daysRemaining)} flex items-center justify-center text-white flex-shrink-0`}>
-                        {getIcon(notification.type)}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4>{notification.title}</h4>
-                              {!notification.read && (<Badge className="bg-blue-500">New</Badge>)}
-                              {notification.daysRemaining !== undefined && notification.daysRemaining <= 2 && (<Badge className={notification.daysRemaining < 0 ? 'bg-red-500' : 'bg-yellow-500'}>
-                                  {notification.daysRemaining < 0 ? 'Overdue' : 'Urgent'}
-                                </Badge>)}
+        {/* Existing notification tabs */}
+        <TabsContent value={filter} className="mt-6" forceMount>
+          {filter !== 'callback' ? (
+            <div className="space-y-3">
+              {filteredNotifications.length > 0 ? (filteredNotifications.map(notification => (<Card key={notification.id} className={`${!notification.read ? 'border-l-4' : ''} ${!notification.read ? `border-l-${getPriorityColor(notification.priority, notification.daysRemaining).replace('bg-', '')}` : ''} ${!notification.read ? 'bg-red-50' : ''}`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-4">
+                        <div className={`w-10 h-10 rounded-full ${getPriorityColor(notification.priority, notification.daysRemaining)} flex items-center justify-center text-white flex-shrink-0`}>
+                          {getIcon(notification.type)}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4>{notification.title}</h4>
+                                {!notification.read && (<Badge className="bg-blue-500">New</Badge>)}
+                                {notification.daysRemaining !== undefined && notification.daysRemaining <= 2 && (<Badge className={notification.daysRemaining < 0 ? 'bg-red-500' : 'bg-yellow-500'}>
+                                    {notification.daysRemaining < 0 ? 'Overdue' : 'Urgent'}
+                                  </Badge>)}
+                              </div>
+                              <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
+                              <div className="flex items-center gap-4 text-xs text-gray-500">
+                                <span>User: {notification.userName} ({notification.userId})</span>
+                                <span>•</span>
+                                <span>{notification.timestamp}</span>
+                                {notification.amount && (<>
+                                    <span>•</span>
+                                    <span className="text-red-500">₹{notification.amount}</span>
+                                  </>)}
+                                {notification.daysRemaining !== undefined && (<>
+                                    <span>•</span>
+                                    <span className={notification.daysRemaining < 0 ? 'text-red-500' : 'text-yellow-500'}>
+                                      {notification.daysRemaining < 0
+                      ? `${Math.abs(notification.daysRemaining)} days overdue`
+                      : `${notification.daysRemaining} days remaining`}
+                                    </span>
+                                  </>)}
+                              </div>
                             </div>
-                            <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
-                              <span>User: {notification.userName} ({notification.userId})</span>
-                              <span>•</span>
-                              <span>{notification.timestamp}</span>
-                              {notification.amount && (<>
-                                  <span>•</span>
-                                  <span className="text-red-500">₹{notification.amount}</span>
-                                </>)}
-                              {notification.daysRemaining !== undefined && (<>
-                                  <span>•</span>
-                                  <span className={notification.daysRemaining < 0 ? 'text-red-500' : 'text-yellow-500'}>
-                                    {notification.daysRemaining < 0
-                    ? `${Math.abs(notification.daysRemaining)} days overdue`
-                    : `${notification.daysRemaining} days remaining`}
-                                  </span>
-                                </>)}
+                            <div className="flex gap-2">
+                              {!notification.read && (<Button onClick={() => markAsRead(notification.id)} variant="outline" size="sm">
+                                  Mark Read
+                                </Button>)}
+                              <Button size="sm" className="bg-red-500 hover:bg-red-600">
+                                Take Action
+                              </Button>
                             </div>
-                          </div>
-                          <div className="flex gap-2">
-                            {!notification.read && (<Button onClick={() => markAsRead(notification.id)} variant="outline" size="sm">
-                                Mark Read
-                              </Button>)}
-                            <Button size="sm" className="bg-red-500 hover:bg-red-600">
-                              Take Action
-                            </Button>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>))) : (<div className="text-center py-12 text-gray-500">
-                <Bell className="w-12 h-12 mx-auto mb-3 opacity-30"/>
-                <p>No notifications found</p>
-              </div>)}
-          </div>
+                    </CardContent>
+                  </Card>))) : (<div className="text-center py-12 text-gray-500">
+                  <Bell className="w-12 h-12 mx-auto mb-3 opacity-30"/>
+                  <p>No notifications found</p>
+                </div>)}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {loadingCallback && <div>Loading callback requests...</div>}
+              {callbackError && <div className="text-red-500 mb-4">{callbackError}</div>}
+              {callbackRequests.length > 0 ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {callbackRequests.map(req => (
+                    <Card key={req.id} className="border hover:border-red-500 transition-all">
+                      <CardContent className="p-6">
+                        <div className="mb-2 flex items-center gap-2">
+                          <Badge className="bg-red-500 text-white">{req.location}</Badge>
+                          <span className="text-gray-500 text-xs ml-auto">{new Date(req.createdAt).toLocaleString()}</span>
+                        </div>
+                        <div className="font-bold text-lg mb-1">{req.name}</div>
+                        <div className="text-gray-700 mb-1">{req.email}</div>
+                        <div className="text-gray-700 mb-1">{req.phone}</div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (!loadingCallback && <div className="text-gray-500 mt-8">No callback requests yet.</div>)}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
       </motion.div>
