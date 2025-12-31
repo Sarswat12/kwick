@@ -5,9 +5,11 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Zap, Battery, Gauge, Shield, Leaf, TrendingUp, ArrowLeft, Clock, Sparkles } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import vehicleImg from "../assets/vehicle.png";
-// Use multiple copies of the red vehicle image so the thumbnail strip shows the same vehicle repeatedly
-const VEHICLE_IMAGES = new Array(5).fill(vehicleImg);
+import vehicle1 from "../assets/v1.jpeg";
+import vehicle2 from "../assets/v2.jpeg";
+import vehicle3 from "../assets/v3.jpeg";
+// Use the three provided vehicle images for the gallery
+const VEHICLE_IMAGES = [vehicle1, vehicle2, vehicle3];
 export function EnhancedVehiclesPage({ onNavigate }) {
     const [selectedImage, setSelectedImage] = useState(0);
     return (<div className="min-h-screen bg-background">
@@ -26,29 +28,37 @@ export function EnhancedVehiclesPage({ onNavigate }) {
             {/* Left: Images */}
             <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }}>
               <div className="space-y-4">
-                {/* Main Image */}
-                <div className="relative rounded-2xl overflow-hidden shadow-2xl aspect-video">
-                  <ImageWithFallback src={VEHICLE_IMAGES[selectedImage]} alt="KWICK EV Scooter" className="w-full h-full object-cover"/>
+                {/* Main Image - show selected vehicle fully, smaller container */}
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-white flex items-center justify-center" style={{ minHeight: '260px', height: '300px', maxHeight: '340px' }}>
+                  <img src={VEHICLE_IMAGES[selectedImage]} alt={`KWICK EV view ${selectedImage + 1}`} className="w-full h-full object-contain" style={{ maxHeight: '95%', maxWidth: '95%' }} />
                   <div className="absolute top-4 left-4">
                     <Badge className="bg-primary">Premium Model</Badge>
                   </div>
                 </div>
 
-                {/* Thumbnail Gallery */}
+                {/* Thumbnail Gallery - show three images */}
                 <div className="flex gap-2 items-center">
-                  {VEHICLE_IMAGES.map((img, index) => (<motion.button key={index} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setSelectedImage(index)} className={`relative rounded-lg overflow-hidden w-20 h-14 flex-shrink-0 ${selectedImage === index ? "ring-2 ring-primary" : ""}`}>
-                      <ImageWithFallback src={img} alt={`KWICK view ${index + 1}`} className="w-full h-full object-contain"/>
-                    </motion.button>))}
+                  {VEHICLE_IMAGES.map((img, index) => (
+                    <motion.button
+                      key={index}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setSelectedImage(index)}
+                      className={`relative rounded-lg overflow-hidden w-24 h-16 flex-shrink-0 ${selectedImage === index ? "ring-2 ring-primary" : ""}`}
+                    >
+                      <img src={img} alt={`KWICK view ${index + 1}`} className="w-full h-full object-contain" />
+                    </motion.button>
+                  ))}
                 </div>
-                {/* Small full-vehicle preview with price */}
+                {/* Small full-vehicle preview with price (use first image) */}
                 <div className="mt-4 flex items-center gap-4">
                   <div className="relative w-28 h-20 rounded-lg overflow-hidden shadow-lg">
-                    <ImageWithFallback src={vehicleImg} alt="KWICK EV full preview" className="w-full h-full object-cover"/>
+                    <img src={VEHICLE_IMAGES[0]} alt="KWICK EV full preview" className="w-full h-full object-contain" />
                     <div className="absolute bottom-2 right-2 bg-red-500 text-white text-sm px-2 py-1 rounded">₹99/day</div>
                   </div>
 
                   <div className="relative w-20 h-12 rounded-lg overflow-hidden shadow-lg hidden sm:block">
-                    <ImageWithFallback src={`${vehicleImg}?variant=small`} alt="KWICK EV small preview" className="w-full h-full object-cover"/>
+                    <img src={VEHICLE_IMAGES[1]} alt="KWICK EV small preview" className="w-full h-full object-contain" />
                   </div>
                 </div>
               </div>
