@@ -7,7 +7,16 @@ public class ApiResponse<T> {
 
     public ApiResponse() {
     }
-
+     public ApiResponse(boolean ok, String message, T body) {
+        this.ok = ok;
+        if (ok) {
+            this.body = body;
+            this.error = message;
+        } else {
+            this.body = body;
+            this.error = message;
+        }
+    }
     public ApiResponse(T body) {
         this.ok = true;
         this.body = body;

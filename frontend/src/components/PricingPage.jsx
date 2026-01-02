@@ -9,13 +9,13 @@ export function PricingPage({ onNavigate }) {
     const plans = [
         {
             name: "Daily",
-            price: "₹250",
+            price: "₹99",
             period: "per day",
-            description: "Perfect for short trips and occasional rides",
+            description: "Old Vehicle + without battery ",
             features: {
-                "Daily km limit": "100 km",
+                "Daily km limit": "150 km",
                 "Helmet": true,
-                "T-shirt": false,
+                "T-shirt": true,
                 "Insurance": "Basic",
                 "Priority support": false,
                 "Maintenance": "Included",
@@ -23,13 +23,13 @@ export function PricingPage({ onNavigate }) {
             }
         },
         {
-            name: "Weekly",
-            price: "₹1,750",
-            period: "per week",
-            description: "Great for extended visits and weekly commutes",
+            name: "Daily Plus",
+            price: "₹180",
+            period: "per day",
+            description: "Old Vehicle + with battery ",
             popular: true,
             features: {
-                "Weekly km limit": "700 km",
+                "Daily km limit": "200 km",
                 "Helmet": true,
                 "T-shirt": true,
                 "Insurance": "Standard",
@@ -39,12 +39,12 @@ export function PricingPage({ onNavigate }) {
             }
         },
         {
-            name: "Monthly Pro",
-            price: "₹7,500",
-            period: "per month",
-            description: "Best value for daily commuters and regular riders",
+            name: "Daily Pro",
+            price: "₹250",
+            period: "per day",
+            description: "New Vehicle + with battery ",
             features: {
-                "Monthly km limit": "Unlimited",
+                "Daily km limit": "Unlimited",
                 "Helmet": true,
                 "T-shirt": true,
                 "Insurance": "Comprehensive",
@@ -127,15 +127,15 @@ export function PricingPage({ onNavigate }) {
                     <TableRow>
                       <TableHead className="w-1/4">Features</TableHead>
                       <TableHead className="text-center">Daily</TableHead>
-                      <TableHead className="text-center bg-primary/5">Weekly</TableHead>
-                      <TableHead className="text-center">Monthly Pro</TableHead>
+                      <TableHead className="text-center bg-primary/5">Daily Plus</TableHead>
+                      <TableHead className="text-center">Daily Pro</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <TableRow>
                       <TableCell>km Limit</TableCell>
                       <TableCell className="text-center">100 km/day</TableCell>
-                      <TableCell className="text-center bg-primary/5">700 km/week</TableCell>
+                      <TableCell className="text-center bg-primary/5">200 km/day</TableCell>
                       <TableCell className="text-center">Unlimited</TableCell>
                     </TableRow>
                     <TableRow>
@@ -158,8 +158,8 @@ export function PricingPage({ onNavigate }) {
                     </TableRow>
                     <TableRow>
                       <TableCell>Battery Swaps</TableCell>
-                      <TableCell className="text-center">₹50/swap</TableCell>
-                      <TableCell className="text-center bg-primary/5">₹30/swap</TableCell>
+                      <TableCell className="text-center">Free</TableCell>
+                      <TableCell className="text-center bg-primary/5">Free</TableCell>
                       <TableCell className="text-center">Free (Unlimited)</TableCell>
                     </TableRow>
                     <TableRow>
@@ -187,7 +187,7 @@ export function PricingPage({ onNavigate }) {
             <CardContent className="p-6">
               <h3 className="text-foreground mb-2">Flexible Plans</h3>
               <p className="text-sm text-muted-foreground">
-                Switch between plans anytime. Upgrade or downgrade based on your needs.
+                Switch between plans anytime. Upgrade  based on your needs.
               </p>
             </CardContent>
           </Card>

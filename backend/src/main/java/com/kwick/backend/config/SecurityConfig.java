@@ -26,6 +26,9 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
                 // Allow static resources and React build
+                .requestMatchers("/api/chat/**").permitAll()  // ⬅️ ADD THIS LINE
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers(
                     "/index.html",
                     "/static/**",

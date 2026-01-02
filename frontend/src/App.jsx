@@ -22,6 +22,7 @@ import AdminTopbar from './components/AdminTopbar';
 import { useAuth } from './contexts/AuthContext';
 import { AdminLogin } from './components/AdminLogin';
 import { Routes, Route, useNavigate, useLocation, Navigate, useParams } from 'react-router-dom';
+import ChatbotWidget from './components/ChatbotWidget';
 // Wrapper to extract blogId from URL and pass to BlogDetailPage
 function BlogDetailPageWrapper(props) {
   const { id } = useParams();
@@ -165,6 +166,7 @@ export default function App() {
             <Toaster position="top-right"/>
           </div>
       </BlogProvider>
+      <ChatbotWidget />
     </LanguageProvider>);
 }
 
