@@ -424,7 +424,22 @@ public class KycController {
 
             var kyc = kycRepository.findByUserId(userId);
             if (kyc.isEmpty()) {
-                return ResponseEntity.ok(new ApiResponse<>(Map.of("status", "incomplete")));
+                // Auto-create an empty KYC record for the user to ensure persistence and
+                // a single row to update as documents are uploaded.
+                KycVerification created = new KycVerification();
+                created.setUserId(userId);
+                created.setVerificationStatus("incomplete");
+                kycRepository.saveAndFlush(created);
+                KycVerification k = created;
+                return ResponseEntity.ok(new ApiResponse<>(Map.of(
+                        "status", k.getVerificationStatus(),
+                        "kycId", k.getId(),
+                        "aadhaarNumber", "",
+                        "licenseNumber", "",
+                        "address", "",
+                        "city", "",
+                        "state", "",
+                        "pincode", "")));
             }
 
             KycVerification k = kyc.get();
