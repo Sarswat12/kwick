@@ -40,7 +40,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain)
             throws ServletException, IOException {
         String path = request.getRequestURI();
-        if (path.startsWith("/api/health") || path.startsWith("/api/kyc/debug") || path.startsWith("/error")) {
+        
+        // Skip filtering completely for public endpoints
+        if (path.startsWith("/api/health") || path.startsWith("/api/kyc/debug")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -52,17 +54,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 DecodedJWT decoded = jwtUtil.parseClaims(token);
                 String userId = decoded.getSubject();
-                // Store userId in request for controller access
                 request.setAttribute("userId", userId);
 
-                // Load user to set authorities in SecurityContext
                 try {
                     Long uid = Long.parseLong(userId);
                     Optional<User> ou = userRepository.findById(uid);
                     if (ou.isPresent()) {
                         User u = ou.get();
                         String role = u.getRole() == null ? "user" : u.getRole();
-                        // expose both userId and userRole as request attributes for controllers
                         request.setAttribute("userRole", role);
                         var auth = new UsernamePasswordAuthenticationToken(
                                 u.getId().toString(),
@@ -74,7 +73,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     // ignore
                 }
             } catch (Exception ex) {
-                // Invalid token - log but don't throw; public endpoints won't need it
                 logger.warn("Invalid token in request: {}", ex.getMessage());
             }
         }
