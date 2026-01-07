@@ -29,12 +29,14 @@ public class WebMvcConfig implements WebMvcConfigurer {
      */
     @Override
     public void addViewControllers(@NonNull ViewControllerRegistry registry) {
-        // Forward all unmapped SPA routes to index.html for React Router
-        // This ensures /about, /dashboard, etc. serve index.html
-        registry.addViewController("/{spring:\\w+}")
+        // Forward single-level SPA routes to index.html
+        // e.g., /about, /dashboard, /blog (but not /api/*, /static/*, etc.)
+        registry.addViewController("/{path:[^\\.]*}")
                 .setViewName("forward:/index.html");
         
-        registry.addViewController("/**/{spring:\\w+}")
+        // Forward nested SPA routes to index.html
+        // e.g., /blog/post-1, /admin/dashboard
+        registry.addViewController("/**/{path:[^\\.]*}")
                 .setViewName("forward:/index.html");
     }
 }
