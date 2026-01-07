@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @RestController
@@ -75,6 +76,7 @@ public class KycController {
      * Upload Aadhaar Front Document
      */
     @PostMapping(value = "/upload/aadhaar-front", consumes = "multipart/form-data")
+    @Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> uploadAadhaarFront(
             @RequestPart("file") MultipartFile file,
             HttpServletRequest request) throws Exception {
@@ -107,7 +109,7 @@ public class KycController {
             kyc.setAadhaarFrontFilename(file.getOriginalFilename());
             kyc.setAadhaarFrontType(file.getContentType());
             kyc.setAadhaarFrontSize(file.getSize());
-            kycRepository.save(kyc);
+            kycRepository.saveAndFlush(kyc);
 
             logger.info("Aadhaar front uploaded for user: {}", userId);
             return ResponseEntity.ok(new ApiResponse<>(Map.of("message", "Aadhaar front uploaded", "url", url)));
@@ -124,6 +126,7 @@ public class KycController {
      * Upload Aadhaar Back Document
      */
     @PostMapping(value = "/upload/aadhaar-back", consumes = "multipart/form-data")
+    @Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> uploadAadhaarBack(
             @RequestPart("file") MultipartFile file,
             HttpServletRequest request) throws Exception {
@@ -156,7 +159,7 @@ public class KycController {
             kyc.setAadhaarBackFilename(file.getOriginalFilename());
             kyc.setAadhaarBackType(file.getContentType());
             kyc.setAadhaarBackSize(file.getSize());
-            kycRepository.save(kyc);
+            kycRepository.saveAndFlush(kyc);
 
             logger.info("Aadhaar back uploaded for user: {}", userId);
             return ResponseEntity.ok(new ApiResponse<>(Map.of("message", "Aadhaar back uploaded", "url", url)));
@@ -173,6 +176,7 @@ public class KycController {
      * Upload License Front Document
      */
     @PostMapping(value = "/upload/license-front", consumes = "multipart/form-data")
+    @Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> uploadLicenseFront(
             @RequestPart("file") MultipartFile file,
             HttpServletRequest request) throws Exception {
@@ -205,7 +209,7 @@ public class KycController {
             kyc.setLicenseFrontFilename(file.getOriginalFilename());
             kyc.setLicenseFrontType(file.getContentType());
             kyc.setLicenseFrontSize(file.getSize());
-            kycRepository.save(kyc);
+            kycRepository.saveAndFlush(kyc);
 
             logger.info("License front uploaded for user: {}", userId);
             return ResponseEntity.ok(new ApiResponse<>(Map.of("message", "License front uploaded", "url", url)));
@@ -222,6 +226,7 @@ public class KycController {
      * Upload License Back Document
      */
     @PostMapping(value = "/upload/license-back", consumes = "multipart/form-data")
+    @Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> uploadLicenseBack(
             @RequestPart("file") MultipartFile file,
             HttpServletRequest request) throws Exception {
@@ -254,7 +259,7 @@ public class KycController {
             kyc.setLicenseBackFilename(file.getOriginalFilename());
             kyc.setLicenseBackType(file.getContentType());
             kyc.setLicenseBackSize(file.getSize());
-            kycRepository.save(kyc);
+            kycRepository.saveAndFlush(kyc);
 
             logger.info("License back uploaded for user: {}", userId);
             return ResponseEntity.ok(new ApiResponse<>(Map.of("message", "License back uploaded", "url", url)));
@@ -271,6 +276,7 @@ public class KycController {
      * Upload Selfie Document
      */
     @PostMapping(value = "/upload/selfie", consumes = "multipart/form-data")
+    @Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> uploadSelfie(
             @RequestPart("file") MultipartFile file,
             HttpServletRequest request) throws Exception {
@@ -303,7 +309,7 @@ public class KycController {
             kyc.setSelfieFilename(file.getOriginalFilename());
             kyc.setSelfieType(file.getContentType());
             kyc.setSelfieSize(file.getSize());
-            kycRepository.save(kyc);
+            kycRepository.saveAndFlush(kyc);
 
             logger.info("Selfie uploaded for user: {}", userId);
             return ResponseEntity.ok(new ApiResponse<>(Map.of("message", "Selfie uploaded", "url", url)));
@@ -320,6 +326,7 @@ public class KycController {
      * Submit KYC with Personal Details
      */
     @PostMapping("/submit")
+    @Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> submitKyc(
             @RequestBody Map<String, Object> payload,
             HttpServletRequest request) {
@@ -356,7 +363,7 @@ public class KycController {
             }
 
             kyc.setVerificationStatus("pending");
-            kycRepository.save(kyc);
+            kycRepository.saveAndFlush(kyc);
 
             // Update user KYC status
             User u = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
@@ -376,7 +383,7 @@ public class KycController {
                 // Store the relative path in the database
                 String relativeUrl = "backend-uploads/kyc/" + userId + "/" + pdfFileName;
                 kyc.setKycPdfUrl(relativeUrl);
-                kycRepository.save(kyc);
+                kycRepository.saveAndFlush(kyc);
                 logger.info("KYC PDF generated and saved for user {} at: {}", userId, filePath.toString());
             } catch (Exception pdfEx) {
                 logger.warn("Could not generate KYC PDF for user {}: {}", userId, pdfEx.getMessage());
