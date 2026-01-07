@@ -1,6 +1,5 @@
 package com.kwick.backend.security;
 
-import com.kwick.backend.exception.UnauthorizedException;
 import com.kwick.backend.model.User;
 import com.kwick.backend.repository.UserRepository;
 import com.auth0.jwt.interfaces.DecodedJWT;
