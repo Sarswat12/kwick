@@ -38,6 +38,7 @@ public class SecurityConfig {
             .httpBasic(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
+                .requestMatchers("/").permitAll()
                 .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/api/kyc/debug/**").permitAll()
                 .requestMatchers("/error").permitAll()
