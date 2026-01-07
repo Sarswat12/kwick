@@ -7,6 +7,7 @@ RUN mvn clean package -DskipTests
 # ---- Run Stage ----
 FROM eclipse-temurin:17-jre
 WORKDIR /app
-COPY --from=build /app/target/kwick-backend-0.0.1-SNAPSHOT.jar app.jar
+# Copy the repackaged Spring Boot jar regardless of version
+COPY --from=build /app/target/*-SNAPSHOT.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
