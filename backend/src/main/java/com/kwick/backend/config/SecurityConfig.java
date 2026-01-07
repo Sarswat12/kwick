@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -33,34 +34,15 @@ public class SecurityConfig {
         http
             .cors(cors -> {})
             .csrf(csrf -> csrf.disable())
+            .formLogin(AbstractHttpConfigurer::disable)
+            .httpBasic(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
-                // Health and debug endpoints (public, no auth required)
+                .requestMatchers("/error").permitAll()
                 .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/api/kyc/debug/**").permitAll()
-                .requestMatchers("/api/admin/kyc/debug/**").permitAll()
-                // Public API endpoints
-                .requestMatchers("/api/chat/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/public/**").permitAll()
-                // Static resources
-                .requestMatchers(
-                    "/index.html",
-                    "/static/**",
-                    "/assets/**",
-                    "/favicon.ico",
-                    "/favicon.svg",
-                    "/manifest.json",
-                    "/logo192.png",
-                    "/logo512.png",
-                    "/admin-secret-login"
-                ).permitAll()
-                // Admin routes (no auth check for demo)
-                .requestMatchers("/api/admin/**").permitAll()
-                // Authenticated API endpoints
-                .requestMatchers("/api/**").authenticated()
-                // All other requests (SPA fallback)
-                .anyRequest().permitAll()
+                .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
