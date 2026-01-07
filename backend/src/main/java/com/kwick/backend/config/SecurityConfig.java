@@ -35,10 +35,14 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
-                // Allow static resources and React build
-                .requestMatchers("/api/chat/**").permitAll()  // ⬅️ ADD THIS LINE
+                // Debug endpoints (public, no auth required)
+                .requestMatchers("/api/kyc/debug/**").permitAll()
+                .requestMatchers("/api/admin/kyc/debug/**").permitAll()
+                // Public API endpoints
+                .requestMatchers("/api/chat/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
+                // Static resources
                 .requestMatchers(
                     "/index.html",
                     "/static/**",
@@ -50,10 +54,9 @@ public class SecurityConfig {
                     "/logo512.png",
                     "/admin-secret-login"
                 ).permitAll()
-                // API endpoints
-                .requestMatchers("/api/auth/**").permitAll()
-                // REMOVE AUTH FOR ADMIN ROUTES FOR DEMO
+                // Admin routes (no auth check for demo)
                 .requestMatchers("/api/admin/**").permitAll()
+                // Authenticated API endpoints
                 .requestMatchers("/api/**").authenticated()
                 // All other requests (SPA fallback)
                 .anyRequest().permitAll()
