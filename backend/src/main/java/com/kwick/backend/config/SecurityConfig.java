@@ -33,6 +33,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            .securityMatcher("/api/**")
             .cors(cors -> {})
             .csrf(csrf -> csrf.disable())
             .formLogin(AbstractHttpConfigurer::disable)
