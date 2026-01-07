@@ -35,7 +35,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
-                // Debug endpoints (public, no auth required)
+                // Health and debug endpoints (public, no auth required)
+                .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/api/kyc/debug/**").permitAll()
                 .requestMatchers("/api/admin/kyc/debug/**").permitAll()
                 // Public API endpoints
