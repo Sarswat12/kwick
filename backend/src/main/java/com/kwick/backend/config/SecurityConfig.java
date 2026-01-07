@@ -4,7 +4,6 @@ import com.kwick.backend.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -19,7 +18,6 @@ import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
-@Order(1)
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -34,17 +32,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .securityMatcher("/api/**")
             .cors(cors -> {})
-            .csrf(csrf -> csrf.disable())
+            .csrf(AbstractHttpConfigurer::disable)
             .formLogin(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/api/kyc/debug/**").permitAll()
-                .requestMatchers("/api/kyc/**").authenticated()
-                .requestMatchers("/api/user/**").authenticated()
+                .requestMatchers("/error").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()
             )
@@ -60,7 +56,7 @@ public class SecurityConfig {
                 .map(String::trim)
                 .toList());
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList("*"));
+        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
