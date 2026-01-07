@@ -6,7 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "KYC_VERIFICATION")
+@Table(name = "kyc_verification")
 public class KycVerification {
     // Aadhaar Front metadata
     @Column(name = "aadhaar_front_filename")
