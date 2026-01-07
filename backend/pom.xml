@@ -10,7 +10,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/x
 	</parent>
 	<groupId>com.kwick</groupId>
 	<artifactId>kwick-backend</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2-SNAPSHOT</version>
 	<name>kwick-backend</name>
 	<description>Demo project for Spring Boot</description>
 	<properties>
