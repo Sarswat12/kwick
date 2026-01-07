@@ -40,7 +40,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain)
             throws ServletException, IOException {
         String path = request.getRequestURI();
-        if (path.startsWith("/api/health") || path.startsWith("/api/kyc/debug")) {
+        if (path.startsWith("/api/health") || path.startsWith("/api/kyc/debug") || path.startsWith("/error")) {
             filterChain.doFilter(request, response);
             return;
         }
