@@ -6,6 +6,7 @@ import '../styles/admin-kyc-dashboard.css';
 
 const AdminKycDashboard = () => {
     const { token } = useAuth();
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
     const [kycList, setKycList] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selectedKyc, setSelectedKyc] = useState(null);
@@ -72,7 +73,7 @@ const AdminKycDashboard = () => {
             };
 
             let kycListResponse = await fetch(
-                `http://localhost:5000/api/admin/kyc/all?status=${statusFilter}`,
+                `${API_BASE}/admin/kyc/all?status=${statusFilter}`,
                 { headers: kycListHeaders }
             );
 
@@ -97,7 +98,7 @@ const AdminKycDashboard = () => {
             };
 
             let kycDetailsResponse = await fetch(
-                `http://localhost:5000/api/admin/kyc/${kycId}`,
+                `${API_BASE}/admin/kyc/${kycId}`,
                 { headers: kycDetailsHeaders }
             );
 
@@ -183,7 +184,7 @@ const AdminKycDashboard = () => {
                 };
 
                     let rejectResponse = await fetch(
-                    `http://localhost:5000/api/admin/kyc/${kycId}/reject`,
+                    `${API_BASE}/admin/kyc/${kycId}/reject`,
                     {
                         method: 'POST',
                         headers: rejectHeaders,
@@ -209,7 +210,7 @@ const AdminKycDashboard = () => {
                 'Content-Type': 'application/json'
             };
             const detailsResponse = await fetch(
-                `http://localhost:5000/api/admin/kyc/${kycId}`,
+                `${API_BASE}/admin/kyc/${kycId}`,
                 { headers: detailsHeaders }
             );
 
@@ -356,7 +357,7 @@ const AdminKycDashboard = () => {
             'Content-Type': 'application/json'
         };
         const rejectResponse2 = await fetch(
-            `http://localhost:5000/api/admin/kyc/${kycId}/reject`,
+            `${API_BASE}/admin/kyc/${kycId}/reject`,
             {
                 method: 'POST',
                 headers: rejectHeaders2,
