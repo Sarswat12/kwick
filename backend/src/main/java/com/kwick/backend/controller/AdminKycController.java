@@ -61,10 +61,11 @@ public class AdminKycController {
 
             // Map to DTO with user info (use mutable map to allow null values)
             List<Map<String, Object>> result = kycSubmissions.stream().map(kyc -> {
-                Optional<User> user = userRepository.findById(java.util.Objects.requireNonNull(kyc.getUserId()));
+                Long userId = kyc.getUserId();
+                Optional<User> user = userId != null ? userRepository.findById(userId) : Optional.empty();
                 java.util.Map<String, Object> dto = new java.util.HashMap<>();
                 dto.put("kycId", kyc.getId());
-                dto.put("userId", kyc.getUserId());
+                dto.put("userId", userId);
                 dto.put("userName", user.map(User::getName).orElse("Unknown"));
                 dto.put("userEmail", user.map(User::getEmail).orElse("N/A"));
                 dto.put("aadhaarLast4", maskNumber(kyc.getAadhaarNumber()));
