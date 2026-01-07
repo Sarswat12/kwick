@@ -5,12 +5,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
 public class SpaForwardingController {
-    // Forward only true SPA routes (not static, assets, index.html, or API endpoints)
-    @RequestMapping(value = {
-        "/admin-secret-login",
-        "/{path:^(?!api/|static|assets|favicon\\.ico|index\\.html|.*\\.js|.*\\.css|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.json$).*$}"
-    })
-    public String forward() {
+    // Forward only the specific admin-secret-login route to index.html
+    // All other SPA routes and API endpoints are handled by their respective controllers
+    @RequestMapping(value = "/admin-secret-login")
+    public String forwardAdminLogin() {
         return "forward:/index.html";
     }
 }
