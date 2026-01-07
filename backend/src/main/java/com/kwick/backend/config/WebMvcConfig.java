@@ -26,17 +26,20 @@ public class WebMvcConfig implements WebMvcConfigurer {
     /**
      * View controller to forward SPA routes to index.html
      * This replaces the old SpaForwardingController with proper Spring MVC configuration
+     * Uses multiple patterns to cover common SPA route nesting levels
      */
     @Override
     public void addViewControllers(@NonNull ViewControllerRegistry registry) {
-        // Forward single-level SPA routes to index.html
-        // e.g., /about, /dashboard, /blog (but not /api/*, /static/*, etc.)
-        registry.addViewController("/{path:[^\\.]*}")
+        // Forward single-level SPA routes: /about, /dashboard, /blog
+        registry.addViewController("/{path:[^.]*}")
                 .setViewName("forward:/index.html");
         
-        // Forward nested SPA routes to index.html
-        // e.g., /blog/post-1, /admin/dashboard
-        registry.addViewController("/**/{path:[^\\.]*}")
+        // Forward 2-level routes: /blog/post-123, /admin/dashboard
+        registry.addViewController("/{a:[^.]*}/{b:[^.]*}")
+                .setViewName("forward:/index.html");
+        
+        // Forward 3-level routes: /admin/users/edit
+        registry.addViewController("/{a:[^.]*}/{b:[^.]*}/{c:[^.]*}")
                 .setViewName("forward:/index.html");
     }
 }
