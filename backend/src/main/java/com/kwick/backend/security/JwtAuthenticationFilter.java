@@ -19,9 +19,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final JwtUtil jwtUtil;
 
@@ -65,7 +69,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     // ignore
                 }
             } catch (Exception ex) {
-                throw new UnauthorizedException("Invalid or expired token");
+                // Invalid token - log but don't throw; public endpoints won't need it
+                logger.warn("Invalid token in request: {}", ex.getMessage());
             }
         }
 
