@@ -40,6 +40,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/").permitAll()
                 .requestMatchers("/api").permitAll()
+                .requestMatchers("/admin").permitAll()
                 .requestMatchers("/api/kyc").permitAll()
                 .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/api/kyc/debug/**").permitAll()

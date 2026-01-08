@@ -42,7 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         
         // Skip filtering completely for public endpoints
-        if (path.equals("/") || path.equals("/api") || path.equals("/api/kyc") || path.startsWith("/api/health") || path.startsWith("/api/kyc/debug") || path.startsWith("/error")) {
+        if (path.equals("/") || path.equals("/api") || path.equals("/admin") || path.equals("/api/kyc") || path.startsWith("/api/health") || path.startsWith("/api/kyc/debug") || path.startsWith("/error")) {
             filterChain.doFilter(request, response);
             return;
         }
