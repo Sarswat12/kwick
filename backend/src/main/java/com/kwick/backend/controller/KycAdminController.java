@@ -22,6 +22,25 @@ public class KycAdminController {
         this.kycRepository = kycRepository;
     }
 
+    @GetMapping
+    public ResponseEntity<ApiResponse<Map<String, Object>>> kycInfo() {
+        return ResponseEntity.ok(new ApiResponse<>(Map.of(
+            "service", "KYC Management Service",
+            "status", "running",
+            "endpoints", Map.of(
+                "submit", "POST /api/kyc/submit",
+                "status", "GET /api/kyc/status",
+                "list", "GET /api/kyc/list",
+                "get_by_id", "GET /api/kyc/{id}",
+                "approve", "PUT /api/kyc/{id}/approve",
+                "reject", "PUT /api/kyc/{id}/reject",
+                "user_kyc", "GET /api/kyc/user/{userId}",
+                "upload_documents", "POST /api/kyc/upload/**",
+                "download_pdf", "GET /api/kyc/download-pdf"
+            )
+        )));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<KycVerification>> getKycStatus(@PathVariable Long id) {
         KycVerification kyc = kycRepository.findById(java.util.Objects.requireNonNull(id))
@@ -80,7 +99,7 @@ public class KycAdminController {
                 "selfieUrl", kyc.getSelfieUrl())));
     }
 
-    @GetMapping
+    @GetMapping("/list")
     public ResponseEntity<ApiResponse<Object>> listPendingKyc(
             @RequestParam(defaultValue = "pending") String status,
             @RequestParam(defaultValue = "0") int page,
