@@ -42,6 +42,7 @@ public class SecurityConfig {
                 .requestMatchers("/api").permitAll()
                 .requestMatchers("/admin").permitAll()
                 .requestMatchers("/admin/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/kyc").permitAll()
                 .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/api/kyc/debug/**").permitAll()
