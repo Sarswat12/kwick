@@ -23,7 +23,8 @@ public class UserController {
         this.userRepository = userRepository;
     }
 
-    private Long extractUserId(HttpServletRequest request) {
+    // Always return a primitive to avoid nullable warnings
+    private long extractUserId(HttpServletRequest request) {
         Object userId = request.getAttribute("userId");
         if (userId == null) {
             throw new UnauthorizedException("User not authenticated");
@@ -33,28 +34,30 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getProfile(HttpServletRequest request) {
-        Long userId = extractUserId(request);
-        User user = userRepository.findById(java.util.Objects.requireNonNull(userId))
+        long userId = extractUserId(request);
+        User user = userRepository.findById(userId)
             .orElseThrow(() -> new UnauthorizedException("User not found"));
         if (user == null) {
             throw new UnauthorizedException("User not found");
         }
-        return ResponseEntity.ok(new ApiResponse<>(Map.of(
-            "userId", user.getId(),
-            "email", user.getEmail(),
-            "name", user.getName(),
-            "phone", user.getPhone(),
-            "address", user.getAddress(),
-            "kycStatus", user.getKycStatus(),
-            "role", user.getRole())));
+        // Use a HashMap to allow null values safely (Map.of does not allow nulls)
+        java.util.Map<String, Object> profile = new java.util.HashMap<>();
+        profile.put("userId", user.getId());
+        profile.put("email", user.getEmail());
+        profile.put("name", user.getName());
+        profile.put("phone", user.getPhone());
+        profile.put("address", user.getAddress());
+        profile.put("kycStatus", user.getKycStatus());
+        profile.put("role", user.getRole());
+        return ResponseEntity.ok(new ApiResponse<>(profile));
     }
 
     @PutMapping("/me")
     public ResponseEntity<ApiResponse<Map<String, Object>>> updateProfile(
             HttpServletRequest request,
             @RequestBody Map<String, String> body) {
-        Long userId = extractUserId(request);
-        User user = userRepository.findById(java.util.Objects.requireNonNull(userId))
+        long userId = extractUserId(request);
+        User user = userRepository.findById(userId)
             .orElseThrow(() -> new UnauthorizedException("User not found"));
         if (user == null) {
             throw new UnauthorizedException("User not found");
@@ -69,20 +72,23 @@ public class UserController {
             user.setAddress(body.get("address"));
         }
         userRepository.save(user);
-        return ResponseEntity.ok(new ApiResponse<>(Map.of(
-                "userId", user.getId(),
-                "email", user.getEmail(),
-                "name", user.getName(),
-                "phone", user.getPhone(),
-                "address", user.getAddress())));
+        java.util.Map<String, Object> updated = new java.util.HashMap<>();
+        updated.put("userId", user.getId());
+        updated.put("email", user.getEmail());
+        updated.put("name", user.getName());
+        updated.put("phone", user.getPhone());
+        updated.put("address", user.getAddress());
+        updated.put("kycStatus", user.getKycStatus());
+        updated.put("role", user.getRole());
+        return ResponseEntity.ok(new ApiResponse<>(updated));
     }
 
     @PostMapping("/change-password")
     public ResponseEntity<ApiResponse<Object>> changePassword(
             HttpServletRequest request,
             @RequestBody Map<String, String> body) {
-        Long userId = extractUserId(request);
-        User user = userRepository.findById(java.util.Objects.requireNonNull(userId))
+        long userId = extractUserId(request);
+        User user = userRepository.findById(userId)
             .orElseThrow(() -> new UnauthorizedException("User not found"));
         if (user == null) {
             throw new UnauthorizedException("User not found");
