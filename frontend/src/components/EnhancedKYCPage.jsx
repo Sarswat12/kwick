@@ -145,8 +145,10 @@ export function EnhancedKYCPage({ onNavigate }) {
                 }, 1500);
 
             } catch (err) {
-                console.error(err);
-                toast.error('KYC submission failed: ' + (err?.message || 'unknown error'));
+                console.error('KYC submission error:', err);
+                console.error('Error response:', err.response?.data);
+                console.error('Error status:', err.response?.status);
+                toast.error('KYC submission failed: ' + (err?.response?.data?.error || err?.message || 'unknown error'));
             } finally {
                 setIsSubmitting(false);
             }

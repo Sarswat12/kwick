@@ -44,12 +44,14 @@ export async function uploadSelfie(file) {
 // Submit KYC personal details (after uploading documents)
 export async function submitKycDetails(payload) {
     const token = getToken();
-    const headers = {};
+    const headers = { 'Content-Type': 'application/json' };
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
     
+    console.log('Submitting KYC details:', payload);
     const resp = await api.post('/kyc/submit', payload, { headers });
+    console.log('KYC submit response:', resp.data);
     return resp.data;
 }
 

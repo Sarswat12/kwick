@@ -20,7 +20,9 @@ export async function signup(data) {
 }
 
 export async function login(data) {
+    console.log('Login request data:', data);
     const result = await normalizeResponse(api.post('/auth/login', data));
+    console.log('Login response:', result);
     if (result.ok && result.body && result.body.body && result.body.body.token) {
         try {
             const token = result.body.body.token;
