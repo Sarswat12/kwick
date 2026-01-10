@@ -51,6 +51,9 @@ export const NotificationsPanel = ({ onNavigate }) => {
     const [callbackRequests, setCallbackRequests] = useState([]);
     const [loadingCallback, setLoadingCallback] = useState(false);
     const [callbackError, setCallbackError] = useState("");
+    const [contactMessages, setContactMessages] = useState([]);
+    const [loadingContact, setLoadingContact] = useState(false);
+    const [contactError, setContactError] = useState("");
 
     useEffect(() => {
         if (filter === 'callback') {
@@ -60,6 +63,13 @@ export const NotificationsPanel = ({ onNavigate }) => {
             .then(setCallbackRequests)
             .catch(() => setCallbackError("Failed to load callback requests."))
             .finally(() => setLoadingCallback(false));
+        } else if (filter === 'contact') {
+          setLoadingContact(true);
+          fetch('/api/contact-messages')
+            .then(res => res.json())
+            .then(setContactMessages)
+            .catch(() => setContactError("Failed to load contact messages."))
+            .finally(() => setLoadingContact(false));
         }
     }, [filter]);
 
@@ -152,18 +162,19 @@ export const NotificationsPanel = ({ onNavigate }) => {
 
       {/* Filters */}
       <Tabs value={filter} onValueChange={setFilter} className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="unread">Unread</TabsTrigger>
           <TabsTrigger value="payment">Payments</TabsTrigger>
           <TabsTrigger value="kyc">KYC</TabsTrigger>
           <TabsTrigger value="vehicle">Vehicle</TabsTrigger>
           <TabsTrigger value="callback">Callback Requests</TabsTrigger>
+          <TabsTrigger value="contact">Contact Messages</TabsTrigger>
         </TabsList>
 
         {/* Existing notification tabs */}
         <TabsContent value={filter} className="mt-6" forceMount>
-          {filter !== 'callback' ? (
+          {filter !== 'callback' && filter !== 'contact' ? (
             <div className="space-y-3">
               {filteredNotifications.length > 0 ? (filteredNotifications.map(notification => (<Card key={notification.id} className={`${!notification.read ? 'border-l-4' : ''} ${!notification.read ? `border-l-${getPriorityColor(notification.priority, notification.daysRemaining).replace('bg-', '')}` : ''} ${!notification.read ? 'bg-red-50' : ''}`}>
                     <CardContent className="p-4">
@@ -217,7 +228,7 @@ export const NotificationsPanel = ({ onNavigate }) => {
                   <p>No notifications found</p>
                 </div>)}
             </div>
-          ) : (
+          ) : filter === 'callback' ? (
             <div className="space-y-3">
               {loadingCallback && <div>Loading callback requests...</div>}
               {callbackError && <div className="text-red-500 mb-4">{callbackError}</div>}
@@ -238,6 +249,30 @@ export const NotificationsPanel = ({ onNavigate }) => {
                   ))}
                 </div>
               ) : (!loadingCallback && <div className="text-gray-500 mt-8">No callback requests yet.</div>)}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {loadingContact && <div>Loading contact messages...</div>}
+              {contactError && <div className="text-red-500 mb-4">{contactError}</div>}
+              {contactMessages.length > 0 ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {contactMessages.map(msg => (
+                    <Card key={msg.id} className="border hover:border-blue-500 transition-all">
+                      <CardContent className="p-6">
+                        <div className="mb-2 flex items-center gap-2">
+                          {msg.inquiryType && <Badge className="bg-blue-500 text-white">{msg.inquiryType}</Badge>}
+                          <span className="text-gray-500 text-xs ml-auto">{new Date(msg.createdAt).toLocaleString()}</span>
+                        </div>
+                        <div className="font-bold text-lg mb-1">{msg.name}</div>
+                        <div className="text-gray-700 mb-1">{msg.email}</div>
+                        <div className="text-gray-700 mb-1">{msg.phone}</div>
+                        <div className="text-gray-700 mt-2">Subject: {msg.subject}</div>
+                        <div className="text-gray-600 mt-1 text-sm">{msg.message}</div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (!loadingContact && <div className="text-gray-500 mt-8">No contact messages yet.</div>)}
             </div>
           )}
         </TabsContent>

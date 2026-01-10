@@ -17,10 +17,20 @@ export function EnhancedContactPage({ onNavigate }) {
         subject: "",
         message: ""
     });
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        toast.success("Message sent successfully! We'll get back to you within 24 hours.");
-        setFormData({ name: "", phone: "", email: "", inquiryType: "", subject: "", message: "" });
+        try {
+          const res = await fetch('/api/contact-messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+          });
+          if (!res.ok) throw new Error('Failed to submit contact message');
+          toast.success("Message sent successfully! We'll get back to you within 24 hours.");
+          setFormData({ name: "", phone: "", email: "", inquiryType: "", subject: "", message: "" });
+        } catch (err) {
+          toast.error("Unable to send message. Please try again.");
+        }
     };
     const offices = [
         {
