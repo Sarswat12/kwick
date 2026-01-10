@@ -41,6 +41,6 @@ public class KycControllerTest {
             .andExpect(status().isOk());
 
         verify(storageService, times(1)).storeFile(any(), anyString());
-        verify(kycRepository, times(1)).save(org.mockito.ArgumentMatchers.<com.kwick.backend.model.KycVerification>argThat(kyc -> kyc != null));
+        verify(kycRepository, times(1)).saveAndFlush(org.mockito.ArgumentMatchers.<com.kwick.backend.model.KycVerification>argThat(kyc -> kyc != null));
     }
 }
