@@ -49,9 +49,11 @@ export const NotificationsPanel = ({ onNavigate }) => {
     const [notifications, setNotifications] = useState(mockNotifications);
     const [filter, setFilter] = useState('all');
     const [callbackRequests, setCallbackRequests] = useState([]);
+    const [callbackTotal, setCallbackTotal] = useState(0);
     const [loadingCallback, setLoadingCallback] = useState(false);
     const [callbackError, setCallbackError] = useState("");
     const [contactMessages, setContactMessages] = useState([]);
+    const [contactTotal, setContactTotal] = useState(0);
     const [loadingContact, setLoadingContact] = useState(false);
     const [contactError, setContactError] = useState("");
     const [contactStatus, setContactStatus] = useState('all');
@@ -69,7 +71,7 @@ export const NotificationsPanel = ({ onNavigate }) => {
       const url = `/api/cta-records?status=${callbackStatus}&q=${encodeURIComponent(callbackQuery)}&page=${callbackPage}&size=${callbackSize}`;
       fetch(url)
         .then(res => res.json())
-        .then(setCallbackRequests)
+        .then(data => { setCallbackRequests(data.items || []); setCallbackTotal(data.total || 0); })
         .catch(() => setCallbackError("Failed to load callback requests."))
         .finally(() => setLoadingCallback(false));
     };
@@ -78,7 +80,7 @@ export const NotificationsPanel = ({ onNavigate }) => {
       const url = `/api/contact-messages?status=${contactStatus}&q=${encodeURIComponent(contactQuery)}&page=${contactPage}&size=${contactSize}`;
       fetch(url)
         .then(res => res.json())
-        .then(setContactMessages)
+        .then(data => { setContactMessages(data.items || []); setContactTotal(data.total || 0); })
         .catch(() => setContactError("Failed to load contact messages."))
         .finally(() => setLoadingContact(false));
     };
@@ -180,7 +182,7 @@ export const NotificationsPanel = ({ onNavigate }) => {
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl text-red-500">{callbackRequests.length}</div>
+            <div className="text-2xl text-red-500">{callbackTotal}</div>
             <div className="text-sm text-gray-500 mt-1">Callback Requests</div>
           </CardContent>
         </Card>
@@ -290,9 +292,12 @@ export const NotificationsPanel = ({ onNavigate }) => {
                   ))}
                 </div>
               ) : (!loadingCallback && <div className="text-gray-500 mt-8">No callback requests yet.</div>)}
-              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="outline" disabled={callbackPage<=0} onClick={()=>setCallbackPage(p=>Math.max(p-1,0))}>Prev</Button>
-                <Button variant="outline" onClick={()=>setCallbackPage(p=>p+1)}>Next</Button>
+              <div className="flex justify-between items-center mt-4">
+                <div className="text-sm text-gray-500">Page {callbackPage+1} • Showing {callbackRequests.length} of {callbackTotal}</div>
+                <div className="flex gap-2">
+                  <Button variant="outline" disabled={callbackPage<=0} onClick={()=>setCallbackPage(p=>Math.max(p-1,0))}>Prev</Button>
+                  <Button variant="outline" disabled={(callbackPage+1)*callbackSize >= callbackTotal} onClick={()=>setCallbackPage(p=>p+1)}>Next</Button>
+                </div>
               </div>
             </div>
           ) : (
@@ -333,9 +338,12 @@ export const NotificationsPanel = ({ onNavigate }) => {
                   ))}
                 </div>
               ) : (!loadingContact && <div className="text-gray-500 mt-8">No contact messages yet.</div>)}
-              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="outline" disabled={contactPage<=0} onClick={()=>setContactPage(p=>Math.max(p-1,0))}>Prev</Button>
-                <Button variant="outline" onClick={()=>setContactPage(p=>p+1)}>Next</Button>
+              <div className="flex justify-between items-center mt-4">
+                <div className="text-sm text-gray-500">Page {contactPage+1} • Showing {contactMessages.length} of {contactTotal}</div>
+                <div className="flex gap-2">
+                  <Button variant="outline" disabled={contactPage<=0} onClick={()=>setContactPage(p=>Math.max(p-1,0))}>Prev</Button>
+                  <Button variant="outline" disabled={(contactPage+1)*contactSize >= contactTotal} onClick={()=>setContactPage(p=>p+1)}>Next</Button>
+                </div>
               </div>
             </div>
           )}

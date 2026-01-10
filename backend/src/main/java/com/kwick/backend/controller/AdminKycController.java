@@ -6,6 +6,7 @@ import com.kwick.backend.model.User;
 import com.kwick.backend.repository.KycRepository;
 import com.kwick.backend.repository.UserRepository;
 import com.kwick.backend.service.EmailService;
+import com.kwick.backend.service.NotificationsPublisher;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
@@ -32,19 +33,24 @@ public class AdminKycController {
     private final KycRepository kycRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final NotificationsPublisher notificationsPublisher;
 
-    public AdminKycController(KycRepository kycRepository, UserRepository userRepository, EmailService emailService) {
+    public AdminKycController(KycRepository kycRepository, UserRepository userRepository, EmailService emailService, NotificationsPublisher notificationsPublisher) {
         this.kycRepository = kycRepository;
         this.userRepository = userRepository;
         this.emailService = emailService;
+        this.notificationsPublisher = notificationsPublisher;
     }
 
     /**
      * Get all KYC submissions (with optional filtering by status)
      */
-    @GetMapping("/all")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllKycSubmissions(
+        @GetMapping("/all")
+        public ResponseEntity<ApiResponse<Map<String, Object>>>> getAllKycSubmissions(
             @RequestParam(required = false, defaultValue = "pending") String status,
+            @RequestParam(required = false, defaultValue = "") String q,
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "20") int size,
             HttpServletRequest request) {
         try {
             // Verify admin access
@@ -52,15 +58,38 @@ public class AdminKycController {
                 return ResponseEntity.status(403).body(new ApiResponse<>("Forbidden: Admin access required"));
             }
 
-            List<KycVerification> kycSubmissions;
-            if ("all".equalsIgnoreCase(status)) {
-                kycSubmissions = kycRepository.findAll();
-            } else {
-                kycSubmissions = kycRepository.findByVerificationStatus(status);
-            }
+            // Fetch all, filter, then paginate (sorted by createdAt desc if available)
+            List<KycVerification> kycSubmissions = kycRepository.findAll();
+            List<KycVerification> filtered = kycSubmissions.stream()
+                    .filter(k -> "all".equalsIgnoreCase(status) || status.equalsIgnoreCase(k.getVerificationStatus()))
+                    .filter(k -> {
+                        if (q == null || q.isBlank()) return true;
+                        String qq = q.toLowerCase();
+                        Optional<User> u = k.getUserId() != null ? userRepository.findById(k.getUserId()) : Optional.empty();
+                        return (u.map(User::getName).orElse("").toLowerCase().contains(qq))
+                                || (u.map(User::getEmail).orElse("").toLowerCase().contains(qq))
+                                || (k.getCity() != null && k.getCity().toLowerCase().contains(qq))
+                                || (k.getState() != null && k.getState().toLowerCase().contains(qq));
+                    })
+                    .sorted((a,b) -> {
+                        java.time.LocalDateTime ac = a.getCreatedAt();
+                        java.time.LocalDateTime bc = b.getCreatedAt();
+                        if (ac == null && bc == null) return 0;
+                        if (ac == null) return 1;
+                        if (bc == null) return -1;
+                        return bc.compareTo(ac);
+                    })
+                    .toList();
 
             // Map to DTO with user info (use mutable map to allow null values)
-            List<Map<String, Object>> result = kycSubmissions.stream().map(kyc -> {
+            int total = filtered.size();
+            int p = Math.max(page, 0);
+            int s = Math.max(size, 1);
+            int from = Math.min(p * s, total);
+            int to = Math.min(from + s, total);
+            List<KycVerification> pageItems = filtered.subList(from, to);
+
+            List<Map<String, Object>> result = pageItems.stream().map(kyc -> {
                 Long userId = kyc.getUserId();
                 Optional<User> user = userId != null ? userRepository.findById(userId) : Optional.empty();
                 java.util.Map<String, Object> dto = new java.util.HashMap<>();
@@ -79,8 +108,13 @@ public class AdminKycController {
                 return dto;
             }).collect(Collectors.toList());
 
-            logger.info("Retrieved {} KYC submissions with status: {}", result.size(), status);
-            return ResponseEntity.ok(new ApiResponse<>(result));
+            logger.info("Retrieved {} KYC submissions with status: {} (total: {})", result.size(), status, total);
+            return ResponseEntity.ok(new ApiResponse<>(Map.of(
+                "items", result,
+                "total", total,
+                "page", p,
+                "size", s
+            )));
         } catch (Exception e) {
             logger.error("Error retrieving KYC submissions", e);
             return ResponseEntity.status(500).body(new ApiResponse<>("Error: " + e.getMessage()));
@@ -173,7 +207,8 @@ public class AdminKycController {
             // Send approval email
             emailService.sendKycApprovalNotification(userData.getName(), userData.getEmail());
 
-            logger.info("KYC {} approved by admin {}", kycId, adminId);
+                logger.info("KYC {} approved by admin {}", kycId, adminId);
+                try { notificationsPublisher.kycStatus(kyc.getId(), userData.getId(), "approved"); } catch (Exception ignore) {}
             return ResponseEntity.ok(new ApiResponse<>(Map.of(
                     "message", "KYC approved successfully",
                     "kycId", kycId,
@@ -228,7 +263,8 @@ public class AdminKycController {
             // Send rejection email
             emailService.sendKycRejectionNotification(userData.getName(), userData.getEmail(), rejectionReason);
 
-            logger.info("KYC {} rejected by admin {} with reason: {}", kycId, adminId, rejectionReason);
+                logger.info("KYC {} rejected by admin {} with reason: {}", kycId, adminId, rejectionReason);
+                try { notificationsPublisher.kycStatus(kyc.getId(), userData.getId(), "rejected"); } catch (Exception ignore) {}
             return ResponseEntity.ok(new ApiResponse<>(Map.of(
                     "message", "KYC rejected successfully",
                     "kycId", kycId,

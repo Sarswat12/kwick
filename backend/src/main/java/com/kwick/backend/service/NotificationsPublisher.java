@@ -28,4 +28,8 @@ public class NotificationsPublisher {
     public void ctaStatus(long id, String status) {
         handler.broadcast("{\"type\":\"cta\",\"event\":\"status\",\"id\":" + id + ",\"status\":\"" + status + "\"}");
     }
+
+    public void kycStatus(long kycId, long userId, String status) {
+        handler.broadcast("{\"type\":\"kyc\",\"event\":\"status\",\"kycId\":" + kycId + ",\"userId\":" + userId + ",\"status\":\"" + status + "\"}");
+    }
 }

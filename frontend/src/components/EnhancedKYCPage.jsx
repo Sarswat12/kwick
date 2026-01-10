@@ -155,6 +155,21 @@ export function EnhancedKYCPage({ onNavigate }) {
         })();
     };
 
+    // Live sync: listen for KYC status changes and update local user context
+    React.useEffect(() => {
+        const origin = window.location.origin.replace(/^http/, 'ws');
+        const ws = new WebSocket(`${origin}/ws/notifications`);
+        ws.onmessage = (evt) => {
+            try {
+                const msg = JSON.parse(evt.data);
+                if (msg.type === 'kyc' && msg.userId && user && msg.userId === user.userId) {
+                    updateUser({ kycStatus: msg.status });
+                }
+            } catch {}
+        };
+        return () => { try { ws.close(); } catch {} };
+    }, [user]);
+
     const downloadKYCForm = () => {
         const kycContent = `
 KWICK EV RENTAL - KYC VERIFICATION FORM

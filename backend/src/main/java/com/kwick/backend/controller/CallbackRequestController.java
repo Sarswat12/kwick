@@ -31,19 +31,24 @@ public class CallbackRequestController {
     }
 
     @GetMapping
-    public List<CallbackRequest> getAll(
+    public Map<String, Object> getAll(
         @RequestParam(required = false, defaultValue = "all") String status,
         @RequestParam(required = false, defaultValue = "") String q,
         @RequestParam(required = false, defaultValue = "0") int page,
         @RequestParam(required = false, defaultValue = "20") int size
     ) {
-        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1), Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<CallbackRequest> p = callbackRequestRepository.findAll(pageable);
-        List<CallbackRequest> filtered = p.getContent().stream()
+        List<CallbackRequest> all = callbackRequestRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+        List<CallbackRequest> filtered = all.stream()
             .filter(m -> "all".equalsIgnoreCase(status) || status.equalsIgnoreCase(m.getStatus()))
             .filter(m -> q == null || q.isBlank() || containsIgnoreCase(m.getName(), q) || containsIgnoreCase(m.getEmail(), q) || containsIgnoreCase(m.getPhone(), q) || containsIgnoreCase(m.getLocation(), q))
             .toList();
-        return filtered;
+        int total = filtered.size();
+        int p = Math.max(page, 0);
+        int s = Math.max(size, 1);
+        int from = Math.min(p * s, total);
+        int to = Math.min(from + s, total);
+        List<CallbackRequest> items = filtered.subList(from, to);
+        return Map.of("items", items, "total", total, "page", p, "size", s);
     }
 
     @PutMapping("/{id}/status")

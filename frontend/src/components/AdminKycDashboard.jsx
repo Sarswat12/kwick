@@ -62,6 +62,21 @@ const AdminKycDashboard = () => {
         fetchKycSubmissions();
     }, [statusFilter, token]);
 
+    // Auto-refresh on KYC WebSocket events
+    useEffect(() => {
+        const origin = window.location.origin.replace(/^http/, 'ws');
+        const ws = new WebSocket(`${origin}/ws/notifications`);
+        ws.onmessage = (evt) => {
+            try {
+                const msg = JSON.parse(evt.data);
+                if (msg.type === 'kyc') {
+                    fetchKycSubmissions();
+                }
+            } catch {}
+        };
+        return () => { try { ws.close(); } catch {} };
+    }, [statusFilter]);
+
 
     const fetchKycSubmissions = async () => {
         try {
