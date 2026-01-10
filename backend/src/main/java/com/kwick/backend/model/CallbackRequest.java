@@ -21,6 +21,12 @@ public class CallbackRequest {
     private String location = "";
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    // Status: "new" or "handled"
+    @Column(nullable = false)
+    private String status = "new";
+
+    private LocalDateTime handledAt;
+
     // Getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -38,4 +44,9 @@ public class CallbackRequest {
     public void setLocation(@NonNull String location) { this.location = location; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public LocalDateTime getHandledAt() { return handledAt; }
+    public void setHandledAt(LocalDateTime handledAt) { this.handledAt = handledAt; }
 }

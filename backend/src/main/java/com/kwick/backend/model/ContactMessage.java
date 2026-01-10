@@ -31,6 +31,11 @@ public class ContactMessage {
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(nullable = false)
+    private String status = "new";
+
+    private LocalDateTime handledAt;
+
     public ContactMessage() {}
 
     public Long getId() { return id; }
@@ -56,4 +61,9 @@ public class ContactMessage {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public LocalDateTime getHandledAt() { return handledAt; }
+    public void setHandledAt(LocalDateTime handledAt) { this.handledAt = handledAt; }
 }

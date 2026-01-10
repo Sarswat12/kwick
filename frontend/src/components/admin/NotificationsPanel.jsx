@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bell, AlertCircle, DollarSign, FileText, CheckCircle } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -54,23 +54,49 @@ export const NotificationsPanel = ({ onNavigate }) => {
     const [contactMessages, setContactMessages] = useState([]);
     const [loadingContact, setLoadingContact] = useState(false);
     const [contactError, setContactError] = useState("");
+    const [contactStatus, setContactStatus] = useState('all');
+    const [contactQuery, setContactQuery] = useState('');
+    const [contactPage, setContactPage] = useState(0);
+    const contactSize = 12;
+    const [callbackStatus, setCallbackStatus] = useState('all');
+    const [callbackQuery, setCallbackQuery] = useState('');
+    const [callbackPage, setCallbackPage] = useState(0);
+    const callbackSize = 12;
+    const wsRef = useRef(null);
+
+    const loadCallbacks = () => {
+      setLoadingCallback(true);
+      const url = `/api/cta-records?status=${callbackStatus}&q=${encodeURIComponent(callbackQuery)}&page=${callbackPage}&size=${callbackSize}`;
+      fetch(url)
+        .then(res => res.json())
+        .then(setCallbackRequests)
+        .catch(() => setCallbackError("Failed to load callback requests."))
+        .finally(() => setLoadingCallback(false));
+    };
+    const loadContacts = () => {
+      setLoadingContact(true);
+      const url = `/api/contact-messages?status=${contactStatus}&q=${encodeURIComponent(contactQuery)}&page=${contactPage}&size=${contactSize}`;
+      fetch(url)
+        .then(res => res.json())
+        .then(setContactMessages)
+        .catch(() => setContactError("Failed to load contact messages."))
+        .finally(() => setLoadingContact(false));
+    };
+    useEffect(() => { if (filter === 'callback') loadCallbacks(); }, [filter, callbackStatus, callbackQuery, callbackPage]);
+    useEffect(() => { if (filter === 'contact') loadContacts(); }, [filter, contactStatus, contactQuery, contactPage]);
 
     useEffect(() => {
-        if (filter === 'callback') {
-          setLoadingCallback(true);
-          fetch('/api/cta-records')
-            .then(res => res.json())
-            .then(setCallbackRequests)
-            .catch(() => setCallbackError("Failed to load callback requests."))
-            .finally(() => setLoadingCallback(false));
-        } else if (filter === 'contact') {
-          setLoadingContact(true);
-          fetch('/api/contact-messages')
-            .then(res => res.json())
-            .then(setContactMessages)
-            .catch(() => setContactError("Failed to load contact messages."))
-            .finally(() => setLoadingContact(false));
-        }
+      const origin = window.location.origin.replace(/^http/, 'ws');
+      wsRef.current = new WebSocket(`${origin}/ws/notifications`);
+      wsRef.current.onmessage = (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          if (msg.type === 'contact' && filter === 'contact') loadContacts();
+          if (msg.type === 'callback' && filter === 'callback') loadCallbacks();
+          if (msg.type === 'cta' && filter === 'callback') loadCallbacks();
+        } catch {}
+      };
+      return () => { try { wsRef.current && wsRef.current.close(); } catch {} };
     }, [filter]);
 
     const markAsRead = (id) => {
@@ -230,6 +256,14 @@ export const NotificationsPanel = ({ onNavigate }) => {
             </div>
           ) : filter === 'callback' ? (
             <div className="space-y-3">
+              <div className="flex gap-2 mb-3">
+                <input value={callbackQuery} onChange={e=>setCallbackQuery(e.target.value)} placeholder="Search name/email/phone/location" className="border px-2 py-1 rounded w-full" />
+                <select value={callbackStatus} onChange={e=>setCallbackStatus(e.target.value)} className="border px-2 py-1 rounded">
+                  <option value="all">All</option>
+                  <option value="new">New</option>
+                  <option value="handled">Handled</option>
+                </select>
+              </div>
               {loadingCallback && <div>Loading callback requests...</div>}
               {callbackError && <div className="text-red-500 mb-4">{callbackError}</div>}
               {callbackRequests.length > 0 ? (
@@ -244,14 +278,33 @@ export const NotificationsPanel = ({ onNavigate }) => {
                         <div className="font-bold text-lg mb-1">{req.name}</div>
                         <div className="text-gray-700 mb-1">{req.email}</div>
                         <div className="text-gray-700 mb-1">{req.phone}</div>
+                        <div className="text-xs text-gray-500 mt-1">Status: {req.status || 'new'}</div>
+                        {req.status !== 'handled' && (
+                          <Button size="sm" className="mt-2" onClick={() => {
+                            fetch(`/api/cta-records/${req.id}/status`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status:'handled'})})
+                              .then(()=>loadCallbacks());
+                          }}>Mark Handled</Button>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               ) : (!loadingCallback && <div className="text-gray-500 mt-8">No callback requests yet.</div>)}
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="outline" disabled={callbackPage<=0} onClick={()=>setCallbackPage(p=>Math.max(p-1,0))}>Prev</Button>
+                <Button variant="outline" onClick={()=>setCallbackPage(p=>p+1)}>Next</Button>
+              </div>
             </div>
           ) : (
             <div className="space-y-3">
+              <div className="flex gap-2 mb-3">
+                <input value={contactQuery} onChange={e=>setContactQuery(e.target.value)} placeholder="Search name/email/phone/subject" className="border px-2 py-1 rounded w-full" />
+                <select value={contactStatus} onChange={e=>setContactStatus(e.target.value)} className="border px-2 py-1 rounded">
+                  <option value="all">All</option>
+                  <option value="new">New</option>
+                  <option value="handled">Handled</option>
+                </select>
+              </div>
               {loadingContact && <div>Loading contact messages...</div>}
               {contactError && <div className="text-red-500 mb-4">{contactError}</div>}
               {contactMessages.length > 0 ? (
@@ -268,11 +321,22 @@ export const NotificationsPanel = ({ onNavigate }) => {
                         <div className="text-gray-700 mb-1">{msg.phone}</div>
                         <div className="text-gray-700 mt-2">Subject: {msg.subject}</div>
                         <div className="text-gray-600 mt-1 text-sm">{msg.message}</div>
+                        <div className="text-xs text-gray-500 mt-1">Status: {msg.status || 'new'}</div>
+                        {msg.status !== 'handled' && (
+                          <Button size="sm" className="mt-2" onClick={() => {
+                            fetch(`/api/contact-messages/${msg.id}/status`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status:'handled'})})
+                              .then(()=>loadContacts());
+                          }}>Mark Handled</Button>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               ) : (!loadingContact && <div className="text-gray-500 mt-8">No contact messages yet.</div>)}
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="outline" disabled={contactPage<=0} onClick={()=>setContactPage(p=>Math.max(p-1,0))}>Prev</Button>
+                <Button variant="outline" onClick={()=>setContactPage(p=>p+1)}>Next</Button>
+              </div>
             </div>
           )}
         </TabsContent>

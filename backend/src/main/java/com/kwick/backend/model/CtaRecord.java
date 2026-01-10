@@ -25,6 +25,11 @@ public class CtaRecord {
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(nullable = false)
+    private String status = "new";
+
+    private LocalDateTime handledAt;
+
     public CtaRecord() {}
 
     public CtaRecord(String name, String email, String phone, String location) {
@@ -46,4 +51,9 @@ public class CtaRecord {
     public void setLocation(String location) { this.location = location; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public LocalDateTime getHandledAt() { return handledAt; }
+    public void setHandledAt(LocalDateTime handledAt) { this.handledAt = handledAt; }
 }
