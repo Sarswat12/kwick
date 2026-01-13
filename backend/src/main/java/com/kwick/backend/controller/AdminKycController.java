@@ -147,26 +147,27 @@ public class AdminKycController {
             KycVerification kyc = kycOpt.get();
             Optional<User> user = userRepository.findById(java.util.Objects.requireNonNull(kyc.getUserId()));
 
-            Map<String, Object> details = Map.ofEntries(
-                    Map.entry("kycId", kyc.getId()),
-                    Map.entry("userId", kyc.getUserId()),
-                    Map.entry("userName", user.map(User::getName).orElse("Unknown")),
-                    Map.entry("userEmail", user.map(User::getEmail).orElse("N/A")),
-                    Map.entry("userPhone", user.map(User::getPhone).orElse("N/A")),
-                    Map.entry("aadhaarNumber", maskNumber(kyc.getAadhaarNumber())),
-                    Map.entry("drivingLicenseNumber", maskNumber(kyc.getDrivingLicenseNumber())),
-                    Map.entry("licenseExpiryDate", kyc.getLicenseExpiryDate()),
-                    Map.entry("streetAddress", kyc.getStreetAddress()),
-                    Map.entry("city", kyc.getCity()),
-                    Map.entry("state", kyc.getState()),
-                    Map.entry("pincode", kyc.getPincode()),
-                    Map.entry("verificationStatus", kyc.getVerificationStatus()),
-                    Map.entry("rejectionReason", kyc.getRejectionReason()),
-                    Map.entry("createdAt", kyc.getCreatedAt()),
-                    Map.entry("verifiedAt", kyc.getVerifiedAt()),
-                    Map.entry("verifiedByAdmin", kyc.getVerifiedByAdmin()),
-                    Map.entry("kycPdfUrl", kyc.getKycPdfUrl()));
+            Map<String, Object> details = new java.util.HashMap<>();
+            details.put("kycId", kyc.getId());
+            details.put("userId", kyc.getUserId());
+            details.put("userName", user.map(User::getName).orElse("Unknown"));
+            details.put("userEmail", user.map(User::getEmail).orElse("N/A"));
+            details.put("userPhone", user.map(User::getPhone).orElse("N/A"));
+            details.put("aadhaarNumber", maskNumber(kyc.getAadhaarNumber()));
+            details.put("drivingLicenseNumber", maskNumber(kyc.getDrivingLicenseNumber()));
+            details.put("licenseExpiryDate", kyc.getLicenseExpiryDate());
+            details.put("streetAddress", kyc.getStreetAddress());
+            details.put("city", kyc.getCity());
+            details.put("state", kyc.getState());
+            details.put("pincode", kyc.getPincode());
+            details.put("verificationStatus", kyc.getVerificationStatus());
+            details.put("rejectionReason", kyc.getRejectionReason());
+            details.put("createdAt", kyc.getCreatedAt());
+            details.put("verifiedAt", kyc.getVerifiedAt());
+            details.put("verifiedByAdmin", kyc.getVerifiedByAdmin());
+            details.put("kycPdfUrl", kyc.getKycPdfUrl());
 
+            logger.info("Retrieved KYC details for kycId: {}, userId: {}", kycId, kyc.getUserId());
             return ResponseEntity.ok(new ApiResponse<>(details));
         } catch (Exception e) {
             logger.error("Error retrieving KYC details for kycId: {}", kycId, e);
