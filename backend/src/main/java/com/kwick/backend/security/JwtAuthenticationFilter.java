@@ -61,16 +61,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     Optional<User> ou = userRepository.findById(uid);
                     if (ou.isPresent()) {
                         User u = ou.get();
-                        String role = u.getRole() == null ? "user" : u.getRole();
+                        String role = u.getRole() == null ? "user" : u.getRole().toLowerCase();
                         request.setAttribute("userRole", role);
                         var auth = new UsernamePasswordAuthenticationToken(
                                 u.getId().toString(),
                                 null,
                                 List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())));
                         SecurityContextHolder.getContext().setAuthentication(auth);
+                        logger.info("Authenticated user {} with role: {} (authority: ROLE_{})", uid, role, role.toUpperCase());
+                    } else {
+                        logger.warn("User ID {} from token not found in database", uid);
                     }
                 } catch (NumberFormatException nfe) {
-                    // ignore
+                    logger.warn("Invalid user ID format in token: {}", userId);
+                } catch (Exception e) {
+                    logger.error("Error setting authentication for user {}: {}", userId, e.getMessage(), e);
                 }
             } catch (Exception ex) {
                 logger.warn("Invalid token in request: {}", ex.getMessage());
