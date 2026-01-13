@@ -145,16 +145,18 @@ export default function App() {
                 {/* Admin login (public secret path) */}
                 <Route path="/admin-secret-login" element={<AdminLogin onNavigate={handleNavigate}/> } />
 
-                {/* Admin routes - demo mode, no login required */}
-                <Route path="/admin" element={<EnhancedAdminDashboard onNavigate={handleNavigate}/> } />
-                <Route path="/admin/users" element={<UserManagementPanel onNavigate={handleNavigate}/> } />
-                <Route path="/admin/kyc" element={<KYCManagementPanel onNavigate={handleNavigate}/> } />
-                <Route path="/admin/payments" element={<PaymentManagementPanel onNavigate={handleNavigate}/> } />
-                <Route path="/admin/fleet" element={<FleetManagementPanel onNavigate={handleNavigate}/> } />
-                <Route path="/admin/blog" element={<BlogCMSPanel onNavigate={handleNavigate}/> } />
-                <Route path="/admin/callback-requests" element={<AdminCallbackRequests /> } />
-                <Route path="/admin/careers" element={<CareerCMSPanel onNavigate={handleNavigate}/> } />
-                <Route path="/admin/notifications" element={<NotificationsPanel onNavigate={handleNavigate}/> } />
+                {/* Admin protected routes - require admin role + admin viewMode */}
+                <Route element={<ProtectedRoute adminViewRequired={true} allowedRoles={['admin']} redirectTo="/admin-secret-login" />}>
+                  <Route path="/admin" element={<EnhancedAdminDashboard onNavigate={handleNavigate}/> } />
+                  <Route path="/admin/users" element={<UserManagementPanel onNavigate={handleNavigate}/> } />
+                  <Route path="/admin/kyc" element={<KYCManagementPanel onNavigate={handleNavigate}/> } />
+                  <Route path="/admin/payments" element={<PaymentManagementPanel onNavigate={handleNavigate}/> } />
+                  <Route path="/admin/fleet" element={<FleetManagementPanel onNavigate={handleNavigate}/> } />
+                  <Route path="/admin/blog" element={<BlogCMSPanel onNavigate={handleNavigate}/> } />
+                  <Route path="/admin/callback-requests" element={<AdminCallbackRequests /> } />
+                  <Route path="/admin/careers" element={<CareerCMSPanel onNavigate={handleNavigate}/> } />
+                  <Route path="/admin/notifications" element={<NotificationsPanel onNavigate={handleNavigate}/> } />
+                </Route>
 
                 {/* fallback */}
                 <Route path="*" element={<Navigate to="/" replace/>} />

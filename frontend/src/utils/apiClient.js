@@ -29,7 +29,10 @@ api.interceptors.response.use(
   (res) => res,
   async (err) => {
     const originalRequest = err.config;
-    if (err.response && err.response.status === 401 && !originalRequest._retry) {
+    const status = err?.response?.status;
+
+    // Handle unauthorized: try one refresh, then redirect to login
+    if (status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise(function (resolve, reject) {
           failedQueue.push({ resolve, reject });
@@ -56,7 +59,6 @@ api.interceptors.response.use(
       }
       catch (refreshErr) {
         processQueue(refreshErr, null);
-        // failed refresh -> clear local auth and redirect to login
         localStorage.removeItem('kwick_token');
         localStorage.removeItem('refreshToken');
         window.location.href = '/';
@@ -66,6 +68,15 @@ api.interceptors.response.use(
         isRefreshing = false;
       }
     }
+
+    // Forbidden: do not retry; redirect to login/admin and surface error
+    if (status === 403) {
+      // optional: clear stale tokens to force re-auth
+      localStorage.removeItem('kwick_token');
+      // do not clear refresh so user can re-login if still valid
+      return Promise.reject(err);
+    }
+
     return Promise.reject(err);
   }
 );

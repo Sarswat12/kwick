@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Card, CardContent } from '../ui/card';
 import { AdminSidebar } from './AdminSidebar';
 import { motion } from 'motion/react';
+import apiClient from '../../utils/apiClient';
 
 export const UserManagementPanel = ({ onNavigate }) => {
     const [users, setUsers] = useState([]);
@@ -23,30 +24,12 @@ export const UserManagementPanel = ({ onNavigate }) => {
     const fetchUsers = async () => {
         try {
             setLoading(true);
-            const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-            const token = localStorage.getItem('kwick_token');
-            
-            if (!token) {
-                console.warn('No authentication token found');
-                return;
-            }
-            
-            const response = await fetch(`${apiBase}/admin/users`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                const userList = data.items || data || [];
-                setUsers(userList);
-                if (userList.length > 0 && !selectedUser) {
-                    setSelectedUser(userList[0]);
-                }
-            } else if (response.status === 403) {
-                console.error('Access denied - admin privileges required');
+            const response = await apiClient.get('/admin/users');
+            const data = response.data?.items || response.data?.body?.items || response.data?.body || response.data || [];
+            const userList = Array.isArray(data.items) ? data.items : Array.isArray(data) ? data : [];
+            setUsers(userList);
+            if (userList.length > 0 && !selectedUser) {
+                setSelectedUser(userList[0]);
             }
         } catch (error) {
             console.error('Error fetching users:', error);

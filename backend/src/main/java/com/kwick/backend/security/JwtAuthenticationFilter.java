@@ -40,9 +40,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain)
             throws ServletException, IOException {
         String path = request.getRequestURI();
-        
-        // Skip filtering completely for public endpoints
-        if (path.equals("/") || path.equals("/api") || path.equals("/admin") || path.startsWith("/admin/") || path.startsWith("/api/auth/") || path.equals("/api/kyc") || path.startsWith("/api/health") || path.startsWith("/api/kyc/debug") || path.startsWith("/error")) {
+
+        // Skip filtering for explicitly public endpoints only
+        if (path.equals("/") || path.equals("/api") || path.startsWith("/api/auth/") || path.startsWith("/api/health") || path.startsWith("/api/kyc/debug") || path.startsWith("/error")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -74,6 +74,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             } catch (Exception ex) {
                 logger.warn("Invalid token in request: {}", ex.getMessage());
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
+                return;
             }
         }
 

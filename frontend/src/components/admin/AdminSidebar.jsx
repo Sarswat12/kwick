@@ -4,6 +4,7 @@ import { LayoutDashboard, Users, FileText, CreditCard, Car, Bell, Newspaper, Bri
 import { Button } from '../ui/button';
 import { useAuth } from '../../contexts/AuthContext';
 import { Badge } from '../ui/badge';
+import apiClient from '../../utils/apiClient';
 export const AdminSidebar = ({ currentPage, onNavigate }) => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [badgeCounts, setBadgeCounts] = useState({
@@ -17,45 +18,23 @@ export const AdminSidebar = ({ currentPage, onNavigate }) => {
     useEffect(() => {
         const fetchCounts = async () => {
             try {
-                const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-                const token = localStorage.getItem('kwick_token');
-                
-                if (!token) {
-                    console.warn('No authentication token found');
-                    return;
-                }
-                
-                const headers = {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                };
-                
-                // Fetch user count
-                const usersRes = await fetch(`${API_BASE}/admin/users?size=0`, { headers });
-                if (usersRes.ok) {
-                    const usersData = await usersRes.json();
-                    setBadgeCounts(prev => ({ ...prev, users: usersData.total || 0 }));
-                }
+                const usersRes = await apiClient.get('/admin/users?size=0');
+                const usersData = usersRes.data?.body || usersRes.data?.data || usersRes.data || {};
+                setBadgeCounts(prev => ({ ...prev, users: usersData.total || 0 }));
 
-                // Fetch pending KYC count
-                const kycRes = await fetch(`${API_BASE}/admin/kyc/all?status=pending&size=0`, { headers });
-                if (kycRes.ok) {
-                  const kycData = await kycRes.json();
-                  const meta = kycData.body || kycData.data || kycData;
-                  const kycTotal = meta?.total || 0;
-                  setBadgeCounts(prev => ({ ...prev, kyc: kycTotal }));
-                }
+                const kycRes = await apiClient.get('/admin/kyc/all?status=pending&size=0');
+                const kycData = kycRes.data?.body || kycRes.data?.data || kycRes.data || {};
+                const kycTotal = kycData.total || 0;
+                setBadgeCounts(prev => ({ ...prev, kyc: kycTotal }));
 
-                // Fetch notification count (placeholder - implement actual endpoint)
-                // For now, set to 0 until notification API is implemented
                 setBadgeCounts(prev => ({ ...prev, notifications: 0 }));
             } catch (error) {
                 console.error('Error fetching badge counts:', error);
+                setBadgeCounts(prev => ({ ...prev, users: prev.users || 0, kyc: prev.kyc || 0 }));
             }
         };
 
         fetchCounts();
-        // Refresh counts every 30 seconds
         const interval = setInterval(fetchCounts, 30000);
         return () => clearInterval(interval);
     }, []);

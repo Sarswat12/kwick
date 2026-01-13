@@ -11,9 +11,9 @@ import com.kwick.backend.service.NotificationWebSocketHandler;
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {
 
-    private final NotificationWebSocketHandler handler;
+    private final @NonNull NotificationWebSocketHandler handler;
 
-    public WebSocketConfig(NotificationWebSocketHandler handler) {
+    public WebSocketConfig(@NonNull NotificationWebSocketHandler handler) {
         this.handler = handler;
     }
 

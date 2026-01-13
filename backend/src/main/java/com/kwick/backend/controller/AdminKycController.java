@@ -11,6 +11,10 @@ import com.kwick.backend.service.NotificationsPublisher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import java.nio.file.Files;
@@ -26,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/admin/kyc")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminKycController {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminKycController.class);
@@ -65,7 +70,7 @@ public class AdminKycController {
                     .filter(k -> {
                         if (q == null || q.isBlank()) return true;
                         String qq = q.toLowerCase();
-                        @NonNull Long userId = k.getUserId();
+                        Long userId = k.getUserId();
                         Optional<User> u = userId != null ? userRepository.findById(userId) : Optional.empty();
                         return (u.map(User::getName).orElse("").toLowerCase().contains(qq))
                                 || (u.map(User::getEmail).orElse("").toLowerCase().contains(qq))
@@ -325,12 +330,18 @@ public class AdminKycController {
      */
     private boolean isAdminUser(HttpServletRequest request) {
         try {
-            Object roleObj = request.getAttribute("userRole");
-            if (roleObj != null) {
-                return "admin".equalsIgnoreCase(roleObj.toString());
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.isAuthenticated()) {
+                boolean hasAdmin = authentication.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .anyMatch(auth -> "ROLE_ADMIN".equalsIgnoreCase(auth));
+                if (hasAdmin) {
+                    return true;
+                }
             }
             return false;
         } catch (Exception e) {
+            logger.warn("Error in isAdminUser", e);
             return false;
         }
     }
@@ -339,9 +350,6 @@ public class AdminKycController {
      * Helper method to get admin ID from request
      */
     private Long getAdminId(HttpServletRequest request) {
-        if (!isAdminUser(request)) {
-            return null;
-        }
         try {
             Object userIdObj = request.getAttribute("userId");
             if (userIdObj == null) {

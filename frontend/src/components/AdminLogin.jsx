@@ -19,8 +19,15 @@ export function AdminLogin({ onNavigate }) {
     // When user state changes and shouldRedirect is true, navigate to admin
     useEffect(() => {
         if (shouldRedirect && user?.role === 'admin') {
-            console.log('[AdminLogin] User state updated to admin, navigating now');
+            const now = new Date().toLocaleTimeString();
+            console.log(`[AdminLogin] ${now} ✅ User state confirmed as admin, navigating to /admin`);
+            console.log(`[AdminLogin] ${now} User:`, user);
             navigate('/admin', { replace: true });
+        } else if (shouldRedirect && user?.role !== 'admin') {
+            const now = new Date().toLocaleTimeString();
+            console.log(`[AdminLogin] ${now} ⚠️ Redirect flag set but user role is '${user?.role}', not 'admin'`);
+            // Reset flag to prevent stuck state
+            setShouldRedirect(false);
         }
     }, [shouldRedirect, user, navigate]);
 
@@ -38,18 +45,28 @@ export function AdminLogin({ onNavigate }) {
         }
 
         console.log(`[AdminLogin] ${now} Attempting login with ID: ${adminId}`);
-        const ok = await adminLogin(adminId, password);
-        console.log(`[AdminLogin] ${now} Login result:`, ok);
-        setLoading(false);
+        try {
+            const ok = await adminLogin(adminId, password);
+            console.log(`[AdminLogin] ${now} Login result:`, ok);
+            setLoading(false);
 
-        if (ok) {
-            console.log(`[AdminLogin] ${now} Login successful! Setting shouldRedirect flag`);
-            setShouldRedirect(true);
-        }
-        else {
-            console.log(`[AdminLogin] ${now} Login failed - showing error`);
-            setError('Invalid Admin ID or Password. Access denied.');
-            setPassword(''); // Clear password on failed attempt
+            if (ok) {
+                console.log(`[AdminLogin] ${now} Login successful! Setting shouldRedirect flag`);
+                // Small delay to ensure state updates propagate
+                setTimeout(() => {
+                    setShouldRedirect(true);
+                }, 100);
+            }
+            else {
+                console.log(`[AdminLogin] ${now} Login failed - showing error`);
+                setError('Invalid Admin ID or Password. Access denied.');
+                setPassword('');
+            }
+        } catch (err) {
+            console.error(`[AdminLogin] ${now} Login error:`, err);
+            setError('Login failed. Please try again.');
+            setLoading(false);
+            setPassword('');
         }
     };
     return (<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">

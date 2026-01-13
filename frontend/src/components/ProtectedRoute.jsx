@@ -17,29 +17,40 @@ export default function ProtectedRoute({ adminViewRequired = false, allowedRoles
     allowedRoles,
     viewMode,
     adminViewRequired,
+    redirectTo,
     user: user
   });
 
+  // Not authenticated at all - redirect to login
   if (!isAuthenticated) {
-    console.log(`[ProtectedRoute] ${now} Not authenticated, redirecting to ${redirectTo}`);
+    console.log(`[ProtectedRoute] ${now} ❌ Not authenticated, redirecting to ${redirectTo}`);
     return <Navigate to={redirectTo} replace />;
   }
 
+  // Admin view required - check both role AND viewMode
   if (adminViewRequired) {
-    if (!(user?.role === 'admin' && viewMode === 'admin')) {
-      console.log(`[ProtectedRoute] ${now} Admin view required but conditions not met:`, {
-        isAdmin: user?.role === 'admin',
-        isAdminView: viewMode === 'admin'
+    const isAdminRole = user?.role === 'admin';
+    const isAdminView = viewMode === 'admin';
+    
+    if (!isAdminRole || !isAdminView) {
+      console.log(`[ProtectedRoute] ${now} ❌ Admin access denied:`, {
+        hasAdminRole: isAdminRole,
+        hasAdminView: isAdminView,
+        actualRole: user?.role,
+        actualView: viewMode
       });
+      console.log(`[ProtectedRoute] ${now} → Redirecting to /admin-secret-login`);
       return <Navigate to="/admin-secret-login" replace />;
     }
   }
 
+  // Check allowed roles
   if (allowedRoles && !allowedRoles.includes(user?.role)) {
-    console.log(`[ProtectedRoute] ${now} Role not allowed - user role: ${user?.role}, allowed: ${allowedRoles.join(',')}, redirecting to ${redirectTo}`);
+    console.log(`[ProtectedRoute] ${now} ❌ Role '${user?.role}' not in allowed: [${allowedRoles.join(', ')}]`);
+    console.log(`[ProtectedRoute] ${now} → Redirecting to ${redirectTo}`);
     return <Navigate to={redirectTo} replace />;
   }
 
-  console.log(`[ProtectedRoute] ${now} Access granted - user is ${user?.role}`);
+  console.log(`[ProtectedRoute] ${now} ✅ Access granted - role: ${user?.role}, view: ${viewMode}`);
   return <Outlet />;
 }

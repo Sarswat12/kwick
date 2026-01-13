@@ -35,11 +35,6 @@ public class AdminUsersController {
             @RequestParam(defaultValue = "50") int size,
             HttpServletRequest request
     ) {
-        // Check admin authentication
-        if (!isAdminUser(request)) {
-            return ResponseEntity.status(403).body(Map.of("error", "Forbidden: Admin access required"));
-        }
-        
         List<User> allUsers = userRepository.findAll();
         
         // Apply search filter if query provided
@@ -78,11 +73,6 @@ public class AdminUsersController {
             @PathVariable @NonNull Long id,
             HttpServletRequest request
     ) {
-        // Check admin authentication
-        if (!isAdminUser(request)) {
-            return ResponseEntity.status(403).body(new ApiResponse<>("Forbidden: Admin access required"));
-        }
-        
         Optional<User> userOpt = userRepository.findById(id);
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(404)
@@ -104,11 +94,6 @@ public class AdminUsersController {
             @RequestBody @NonNull Map<String, String> body,
             HttpServletRequest request
     ) {
-        // Check admin authentication
-        if (!isAdminUser(request)) {
-            return ResponseEntity.status(403).body(new ApiResponse<>("Forbidden: Admin access required"));
-        }
-        
         Optional<User> userOpt = userRepository.findById(id);
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(404)
@@ -143,52 +128,5 @@ public class AdminUsersController {
         dto.put("kycStatus", user.getKycStatus());
         dto.put("status", "active"); // Default status, should be fetched from DB if field exists
         return dto;
-    }
-
-    /**
-     * Helper method to check if request is from admin user
-     */
-    private boolean isAdminUser(HttpServletRequest request) {
-        try {
-            // Check if user is authenticated via JWT
-            Object roleObj = request.getAttribute("userRole");
-            if (roleObj != null && "admin".equalsIgnoreCase(roleObj.toString())) {
-                return true;
-            }
-            // If not admin, check if userId exists (means authenticated user)
-            Object userIdObj = request.getAttribute("userId");
-            if (userIdObj != null) {
-                // Look up user to check if they're admin
-                try {
-                    Long userId = Long.parseLong(userIdObj.toString());
-                    
-                    // TEMPORARY: Auto-promote users 15 and 16 for development/testing
-                    if (userId == 15L || userId == 16L) {
-                        // Update user role to admin in database
-                        Optional<User> userOpt = userRepository.findById(userId);
-                        if (userOpt.isPresent()) {
-                            User user = userOpt.get();
-                            if (!"admin".equalsIgnoreCase(user.getRole())) {
-                                user.setRole("admin");
-                                userRepository.save(user);
-                                logger.info("Auto-promoted user {} to admin role", userId);
-                            }
-                            return true;
-                        }
-                    }
-                    
-                    Optional<User> user = userRepository.findById(userId);
-                    if (user.isPresent() && "admin".equalsIgnoreCase(user.get().getRole())) {
-                        return true;
-                    }
-                } catch (Exception e) {
-                    logger.warn("Error checking user role", e);
-                }
-            }
-            return false;
-        } catch (Exception e) {
-            logger.warn("Error in isAdminUser", e);
-            return false;
-        }
     }
 }
