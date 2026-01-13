@@ -1,11 +1,11 @@
 # ---- Build Stage ----
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY . .
 RUN mvn clean package -DskipTests
 
 # ---- Run Stage ----
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:21-jre
 WORKDIR /app
 # Copy the repackaged Spring Boot jar regardless of version
 COPY --from=build /app/target/*-SNAPSHOT.jar app.jar
