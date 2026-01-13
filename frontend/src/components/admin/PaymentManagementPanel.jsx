@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Download, Plus, Eye, Check, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -11,51 +11,12 @@ import { Textarea } from '../ui/textarea';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { AdminSidebar } from './AdminSidebar';
 import { motion } from 'motion/react';
-const mockPaymentData = [
-    {
-        id: 'USR001',
-        name: 'Raj Kumar',
-        email: 'raj.kumar@email.com',
-        phone: '+91 98765 43210',
-        totalPaid: 3386,
-        pendingAmount: 0,
-        lastPayment: '1/15/2024',
-        payments: [
-            {
-                id: 'PAY001',
-                date: '1/15/2024',
-                amount: 2000,
-                plan: 'Weekly Plan',
-                method: 'UPI',
-                utr: 'UTR123456789',
-                proof: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400',
-                status: 'completed',
-            },
-            {
-                id: 'PAY002',
-                date: '1/8/2024',
-                amount: 1386,
-                plan: 'Weekly Plan',
-                method: 'UPI',
-                utr: 'UTR987654321',
-                proof: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400',
-                status: 'completed',
-            },
-        ],
-    },
-    {
-        id: 'USR002',
-        name: 'Priya Sharma',
-        email: 'priya.sharma@email.com',
-        phone: '+91 98765 43211',
-        totalPaid: 0,
-        pendingAmount: 2000,
-        lastPayment: '-',
-        payments: [],
-    },
-];
+
+// Payment data will be fetched from API
+const mockPaymentData = [];
+
 export const PaymentManagementPanel = ({ onNavigate }) => {
-    const [selectedUser, setSelectedUser] = useState(mockPaymentData[0]);
+    const [selectedUser, setSelectedUser] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [addPaymentOpen, setAddPaymentOpen] = useState(false);
     const [newPayment, setNewPayment] = useState({
@@ -78,9 +39,9 @@ export const PaymentManagementPanel = ({ onNavigate }) => {
         alert(`Payment ${paymentId} verified!`);
     };
     const stats = [
-        { label: 'Total Revenue', value: '₹3,386', color: 'text-green-500' },
-        { label: 'Pending Payments', value: '₹2,000', color: 'text-yellow-500' },
-        { label: 'Completed', value: '2', color: 'text-blue-500' },
+        { label: 'Total Revenue', value: '₹0', color: 'text-green-500' },
+        { label: 'Pending Payments', value: '₹0', color: 'text-yellow-500' },
+        { label: 'Completed', value: '0', color: 'text-blue-500' },
         { label: 'Failed', value: '0', color: 'text-red-500' },
     ];
     return (<div className="min-h-screen bg-gray-50">
@@ -153,29 +114,31 @@ export const PaymentManagementPanel = ({ onNavigate }) => {
         <div className="lg:col-span-8">
           <Card>
             <CardContent className="p-6">
+              {selectedUser ? (
+              <>
               {/* Header */}
               <div className="mb-6">
-                <h3 className="text-xl">{selectedUser.name}</h3>
-                <p className="text-gray-500">User ID: {selectedUser.id}</p>
+                <h3 className="text-xl">{selectedUser?.name || 'N/A'}</h3>
+                <p className="text-gray-500">User ID: {selectedUser?.id || 'N/A'}</p>
               </div>
 
               {/* Payment Summary */}
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <Card>
                   <CardContent className="p-4 text-center">
-                    <div className="text-2xl text-green-500">₹{selectedUser.totalPaid}</div>
+                    <div className="text-2xl text-green-500">₹{selectedUser?.totalPaid || 0}</div>
                     <div className="text-sm text-gray-500 mt-1">Total Paid</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4 text-center">
-                    <div className="text-2xl text-red-500">₹{selectedUser.pendingAmount}</div>
+                    <div className="text-2xl text-red-500">₹{selectedUser?.pendingAmount || 0}</div>
                     <div className="text-sm text-gray-500 mt-1">Pending</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4 text-center">
-                    <div className="text-2xl text-blue-500">{selectedUser.payments.length}</div>
+                    <div className="text-2xl text-blue-500">{selectedUser?.payments?.length || 0}</div>
                     <div className="text-sm text-gray-500 mt-1">Transactions</div>
                   </CardContent>
                 </Card>
@@ -184,8 +147,10 @@ export const PaymentManagementPanel = ({ onNavigate }) => {
               {/* Payment History */}
               <div>
                 <h4 className="mb-4">Payment History</h4>
-                {selectedUser.payments.length > 0 ? (<div className="space-y-4">
-                    {selectedUser.payments.map((payment) => (<Card key={payment.id}>
+                {selectedUser?.payments && selectedUser.payments.length > 0 ? (
+                  <div className="space-y-4">
+                    {selectedUser.payments.map((payment) => (
+                      <Card key={payment.id}>
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between mb-3">
                             <div>
@@ -220,7 +185,8 @@ export const PaymentManagementPanel = ({ onNavigate }) => {
                               <Eye className="w-4 h-4 mr-2"/>
                               View Full
                             </Button>
-                            {payment.status === 'pending' && (<>
+                            {payment.status === 'pending' && (
+                              <>
                                 <Button onClick={() => verifyPayment(payment.id)} size="sm" className="flex-1 bg-green-500 hover:bg-green-600">
                                   <Check className="w-4 h-4 mr-2"/>
                                   Verify
@@ -229,14 +195,25 @@ export const PaymentManagementPanel = ({ onNavigate }) => {
                                   <X className="w-4 h-4 mr-2"/>
                                   Reject
                                 </Button>
-                              </>)}
+                              </>
+                            )}
                           </div>
                         </CardContent>
-                      </Card>))}
-                  </div>) : (<div className="text-center py-8 text-gray-500">
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
                     <p>No payment history</p>
-                  </div>)}
+                  </div>
+                )}
               </div>
+              </>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <p>Select a user to view payment details</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -315,5 +292,6 @@ export const PaymentManagementPanel = ({ onNavigate }) => {
         </DialogContent>
       </Dialog>
       </motion.div>
-    </div>);
+    </div>
+  );
 };

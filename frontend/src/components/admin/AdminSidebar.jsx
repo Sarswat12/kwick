@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { LayoutDashboard, Users, FileText, CreditCard, Car, Bell, Newspaper, Briefcase, Menu, X, } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -6,18 +6,72 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Badge } from '../ui/badge';
 export const AdminSidebar = ({ currentPage, onNavigate }) => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [badgeCounts, setBadgeCounts] = useState({
+        users: 0,
+        kyc: 0,
+        notifications: 0
+    });
     const { logout } = useAuth();
+
+    // Fetch real counts from backend
+    useEffect(() => {
+        const fetchCounts = async () => {
+            try {
+                const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+                const token = localStorage.getItem('kwick_token');
+                
+                if (!token) {
+                    console.warn('No authentication token found');
+                    return;
+                }
+                
+                const headers = {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                };
+                
+                // Fetch user count
+                const usersRes = await fetch(`${API_BASE}/admin/users?size=0`, { headers });
+                if (usersRes.ok) {
+                    const usersData = await usersRes.json();
+                    setBadgeCounts(prev => ({ ...prev, users: usersData.total || 0 }));
+                }
+
+                // Fetch pending KYC count
+                const kycRes = await fetch(`${API_BASE}/admin/kyc/all?status=pending&size=0`, { headers });
+                if (kycRes.ok) {
+                  const kycData = await kycRes.json();
+                  const meta = kycData.body || kycData.data || kycData;
+                  const kycTotal = meta?.total || 0;
+                  setBadgeCounts(prev => ({ ...prev, kyc: kycTotal }));
+                }
+
+                // Fetch notification count (placeholder - implement actual endpoint)
+                // For now, set to 0 until notification API is implemented
+                setBadgeCounts(prev => ({ ...prev, notifications: 0 }));
+            } catch (error) {
+                console.error('Error fetching badge counts:', error);
+            }
+        };
+
+        fetchCounts();
+        // Refresh counts every 30 seconds
+        const interval = setInterval(fetchCounts, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
     // Expose sidebar state to parent components via CSS variable
     React.useEffect(() => {
         document.documentElement.style.setProperty('--admin-sidebar-width', sidebarOpen ? '280px' : '80px');
     }, [sidebarOpen]);
+
     const menuItems = [
         { label: 'Dashboard', icon: LayoutDashboard, page: 'admin-dashboard', badge: null },
-        { label: 'User Management', icon: Users, page: 'admin-users', badge: '3' },
-        { label: 'KYC Management', icon: FileText, page: 'admin-kyc', badge: '1' },
+        { label: 'User Management', icon: Users, page: 'admin-users', badge: badgeCounts.users > 0 ? badgeCounts.users.toString() : null },
+        { label: 'KYC Management', icon: FileText, page: 'admin-kyc', badge: badgeCounts.kyc > 0 ? badgeCounts.kyc.toString() : null },
         { label: 'Payments', icon: CreditCard, page: 'admin-payments', badge: null },
         { label: 'Fleet Management', icon: Car, page: 'admin-fleet', badge: null },
-        { label: 'Notifications', icon: Bell, page: 'admin-notifications', badge: '5' },
+        { label: 'Notifications', icon: Bell, page: 'admin-notifications', badge: badgeCounts.notifications > 0 ? badgeCounts.notifications.toString() : null },
         { label: 'Blog CMS', icon: Newspaper, page: 'admin-blog', badge: null },
         { label: 'Career CMS', icon: Briefcase, page: 'admin-careers', badge: null },
     ];

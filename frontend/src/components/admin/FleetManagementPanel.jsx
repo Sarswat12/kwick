@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Download, Plus, Car } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -8,45 +8,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { AdminSidebar } from './AdminSidebar';
-import { motion } from 'motion/react';
-const mockFleetData = [
-    {
-        id: 'USR001',
-        name: 'Raj Kumar',
-        email: 'raj.kumar@email.com',
-        phone: '+91 98765 43210',
-        vehicle: {
-            vehicleNumber: 'UP16 EV 1234',
-            chassisNumber: 'CH1234567890',
-            modelNumber: 'KWICK-ELITE-2024',
-            controllerNumber: 'CTRL001',
-            vehicleImage: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=600',
-            assignedBy: 'Admin Kumar',
-            hub: 'Noida Hub',
-            assignedDate: '1/15/2024',
-            status: 'active',
-        },
-    },
-    {
-        id: 'USR003',
-        name: 'Amit Singh',
-        email: 'amit.singh@email.com',
-        phone: '+91 98765 43212',
-        vehicle: {
-            vehicleNumber: 'UP16 EV 5678',
-            chassisNumber: 'CH9876543210',
-            modelNumber: 'KWICK-PRO-2024',
-            controllerNumber: 'CTRL002',
-            vehicleImage: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=600',
-            assignedBy: 'Admin Sharma',
-            hub: 'Delhi Hub',
-            assignedDate: '1/10/2024',
-            status: 'active',
-        },
-    },
-];
+import { motion} from 'motion/react';
+
+// Fleet data will be fetched from API
+const mockFleetData = [];
+
 export const FleetManagementPanel = ({ onNavigate }) => {
-    const [selectedUser, setSelectedUser] = useState(mockFleetData[0]);
+    const [selectedUser, setSelectedUser] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [addVehicleOpen, setAddVehicleOpen] = useState(false);
     const [newVehicle, setNewVehicle] = useState({
@@ -80,8 +48,8 @@ export const FleetManagementPanel = ({ onNavigate }) => {
         }
     };
     const stats = [
-        { label: 'Total Vehicles', value: '2', color: 'text-blue-500' },
-        { label: 'Assigned', value: '2', color: 'text-green-500' },
+        { label: 'Total Vehicles', value: '0', color: 'text-blue-500' },
+        { label: 'Assigned', value: '0', color: 'text-green-500' },
         { label: 'Available', value: '0', color: 'text-gray-500' },
         { label: 'In Maintenance', value: '0', color: 'text-yellow-500' },
     ];
@@ -155,12 +123,14 @@ export const FleetManagementPanel = ({ onNavigate }) => {
         <div className="lg:col-span-8">
           <Card>
             <CardContent className="p-6">
+              {selectedUser ? (
+              <>
               {/* Header */}
               <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h3 className="text-xl">{selectedUser.name}</h3>
-                  <p className="text-gray-500">User ID: {selectedUser.id}</p>
-                  <Badge className="bg-green-500 mt-2">{selectedUser.vehicle.status}</Badge>
+                  <h3 className="text-xl">{selectedUser?.name || 'N/A'}</h3>
+                  <p className="text-gray-500">User ID: {selectedUser?.id || 'N/A'}</p>
+                  <Badge className="bg-green-500 mt-2">{selectedUser?.vehicle?.status || 'unassigned'}</Badge>
                 </div>
                 <Button onClick={() => unassignVehicle(selectedUser.id)} variant="destructive" size="sm">
                   Unassign Vehicle
@@ -206,22 +176,28 @@ export const FleetManagementPanel = ({ onNavigate }) => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Assigned Date</p>
-                    <p>{selectedUser.vehicle.assignedDate}</p>
+                    <p>{selectedUser?.vehicle?.assignedDate || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Person Name</p>
-                    <p>{selectedUser.name}</p>
+                    <p>{selectedUser?.name || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Contact</p>
-                    <p>{selectedUser.phone}</p>
+                    <p>{selectedUser?.phone || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Email</p>
-                    <p>{selectedUser.email}</p>
+                    <p>{selectedUser?.email || 'N/A'}</p>
                   </div>
                 </div>
               </div>
+              </>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <p>Select a user to view vehicle details</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -297,5 +273,6 @@ export const FleetManagementPanel = ({ onNavigate }) => {
         </DialogContent>
       </Dialog>
       </motion.div>
-    </div>);
+    </div>
+  );
 };

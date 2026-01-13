@@ -6,47 +6,12 @@ import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { AdminSidebar } from './AdminSidebar';
 import { motion } from 'motion/react';
-const mockNotifications = [
-    {
-        id: 'NOT001',
-        type: 'payment',
-        title: 'Payment Expiring Soon',
-        message: 'Weekly plan payment expires in 2 days',
-        userId: 'USR001',
-        userName: 'Raj Kumar',
-        priority: 'high',
-        daysRemaining: 2,
-        amount: 2000,
-        timestamp: '2024-01-18 10:30',
-        read: false,
-    },
-    {
-        id: 'NOT002',
-        type: 'kyc',
-        title: 'KYC Pending Approval',
-        message: 'New KYC application awaiting review',
-        userId: 'USR002',
-        userName: 'Priya Sharma',
-        priority: 'medium',
-        timestamp: '2024-01-18 09:15',
-        read: false,
-    },
-    {
-        id: 'NOT003',
-        type: 'payment',
-        title: 'Payment Overdue',
-        message: 'Weekly plan payment is overdue by 5 days',
-        userId: 'USR004',
-        userName: 'Suresh Patel',
-        priority: 'high',
-        daysRemaining: -5,
-        amount: 2000,
-        timestamp: '2024-01-10 14:20',
-        read: false,
-    },
-];
+
+// Notifications will be fetched from API - no mock data
+const mockNotifications = [];
+
 export const NotificationsPanel = ({ onNavigate }) => {
-    const [notifications, setNotifications] = useState(mockNotifications);
+    const [notifications, setNotifications] = useState([]);
     const [filter, setFilter] = useState('all');
     const [callbackRequests, setCallbackRequests] = useState([]);
     const [callbackTotal, setCallbackTotal] = useState(0);
@@ -89,7 +54,7 @@ export const NotificationsPanel = ({ onNavigate }) => {
 
     useEffect(() => {
       const origin = window.location.origin.replace(/^http/, 'ws');
-      wsRef.current = new WebSocket(`${origin}/ws/notifications`);
+      wsRef.current = new WebSocket('ws://localhost:5000/ws/notifications');
       wsRef.current.onmessage = (evt) => {
         try {
           const msg = JSON.parse(evt.data);

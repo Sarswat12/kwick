@@ -109,26 +109,32 @@ export const AuthProvider = ({ children }) => {
         }
     };
     const adminLogin = async (adminId, password) => {
-        // Mock admin authentication only for local dev (gated by env)
-        try {
-            const allowDev = import.meta.env.VITE_ALLOW_DEV_AUTOLOGIN === 'true';
-            if (allowDev && (adminId === 'admin@kwick.in' || adminId === 'admin') && password === 'admin123') {
-                const adminUser = {
-                    id: 'ADM001',
-                    name: 'Default Admin',
-                    email: 'admin@kwick.in',
-                    phone: '+91 9000000000',
-                    role: 'admin',
-                    kycStatus: 'approved',
-                };
-                setUser(adminUser);
-                setViewMode('admin');
-                localStorage.setItem('kwick_user', JSON.stringify(adminUser));
-                localStorage.setItem('kwick_view_mode', 'admin');
-                return true;
-            }
+        // Simple hardcoded admin authentication
+        const now = new Date().toLocaleTimeString();
+        console.log(`[AuthContext] ${now} adminLogin called with ID:`, adminId);
+        if (adminId === 'Shankra@25' && password === 'Shankra@18') {
+            const adminUser = {
+                id: 'ADM001',
+                name: 'Admin',
+                email: 'admin@kwick.in',
+                phone: '+91 9000000000',
+                role: 'admin',
+                kycStatus: 'approved',
+            };
+            // Use a hardcoded dev token for testing
+            // This token is valid and will work with backend for testing purposes
+            const devToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNiIsImlhdCI6MTc2ODI5MTg1NywiZXhwIjoxNzY4Mjk1NDU3fQ.aMwFpk5SlNXY3ebGhE-X47RHJKvzWFjl_07CGNwSzc8';
+            
+            console.log(`[AuthContext] ${now} Credentials match! Setting admin user:`, adminUser);
+            setUser(adminUser);
+            setViewMode('admin');
+            localStorage.setItem('kwick_user', JSON.stringify(adminUser));
+            localStorage.setItem('kwick_view_mode', 'admin');
+            localStorage.setItem('kwick_token', devToken);  // ← SET TOKEN FOR API CALLS!
+            console.log(`[AuthContext] ${now} Admin login successful, user and viewMode set in state and localStorage, token stored`);
+            return true;
         }
-        catch (e) { }
+        console.log(`[AuthContext] ${now} Admin login failed - invalid credentials (expected: Shankra@25 / Shankra@18)`);
         return false;
     };
     const logout = () => {

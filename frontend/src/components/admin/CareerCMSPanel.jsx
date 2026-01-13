@@ -9,22 +9,8 @@ import { Textarea } from '../ui/textarea';
 import { Badge } from '../ui/badge';
 import { AdminSidebar } from './AdminSidebar';
 import { motion } from 'motion/react';
-const mockCareers = [
-    {
-        id: 'CAR001',
-        title: 'Customer Support Executive',
-        department: 'Support',
-        location: 'Noida, India',
-        type: 'Full-time',
-        experience: '0-2 years',
-        description: 'Join our customer support team and help delivery partners succeed.',
-        requirements: 'Good communication skills, Problem-solving ability',
-        postedDate: '2024-01-10',
-        status: 'open',
-    },
-];
 export const CareerCMSPanel = ({ onNavigate }) => {
-    const [careers, setCareers] = useState(mockCareers);
+    const [careers, setCareers] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCareer, setEditingCareer] = useState(null);
     const [formData, setFormData] = useState({

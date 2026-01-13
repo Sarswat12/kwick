@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useAuth } from '../contexts/AuthContext';
+import apiClient from '../utils/apiClient';
 import '../styles/admin-kyc-dashboard.css';
 
 const AdminKycDashboard = () => {
-    const { token } = useAuth();
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+    const { user } = useAuth();
     const [kycList, setKycList] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selectedKyc, setSelectedKyc] = useState(null);
@@ -20,6 +20,7 @@ const AdminKycDashboard = () => {
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
     const pageSize = 10;
     const printRef = useRef();
     const [downloading, setDownloading] = useState(false);
@@ -60,12 +61,12 @@ const AdminKycDashboard = () => {
 
     useEffect(() => {
         fetchKycSubmissions();
-    }, [statusFilter, token]);
+    }, [statusFilter, currentPage, searchQuery]);
 
     // Auto-refresh on KYC WebSocket events
     useEffect(() => {
-        const origin = window.location.origin.replace(/^http/, 'ws');
-        const ws = new WebSocket(`${origin}/ws/notifications`);
+        const wsUrl = 'ws://localhost:5000/ws/notifications';
+        const ws = new WebSocket(wsUrl);
         ws.onmessage = (evt) => {
             try {
                 const msg = JSON.parse(evt.data);
@@ -82,20 +83,17 @@ const AdminKycDashboard = () => {
         try {
             setLoading(true);
             setError('');
-            const kycListHeaders = {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            };
 
-            let kycListResponse = await fetch(
-                `${API_BASE}/admin/kyc/all?status=${statusFilter}`,
-                { headers: kycListHeaders }
+            const response = await apiClient.get(
+                `/admin/kyc/all?status=${encodeURIComponent(statusFilter)}&q=${encodeURIComponent(searchQuery)}&page=${Math.max(0, (currentPage-1))}&size=${pageSize}`
             );
 
-            if (!kycListResponse.ok) throw new Error('Failed to fetch KYC submissions');
-
-            const kycListData = await kycListResponse.json();
-            setKycList(kycListData.data || []);
+            const kycListData = response.data;
+            const meta = kycListData.body || kycListData.data || kycListData;
+            const items = Array.isArray(meta.items) ? meta.items : (Array.isArray(meta) ? meta : []);
+            setKycList(items);
+            if (typeof meta.total === 'number') setTotalItems(meta.total);
+            if (typeof meta.page === 'number') setCurrentPage(meta.page + 1);
         } catch (err) {
             setError(err.message || 'Error fetching KYC submissions');
             console.error(err);
@@ -107,289 +105,63 @@ const AdminKycDashboard = () => {
     const fetchKycDetails = async (kycId) => {
         try {
             setError('');
-            const kycDetailsHeaders = {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            };
+            const response = await apiClient.get(`/admin/kyc/${kycId}`);
+            const kycDetailsData = response.data;
+            const details = kycDetailsData.body || kycDetailsData.data || kycDetailsData;
+            setSelectedKyc(details);
+            setDetailsModal(true);
+        } catch (err) {
+            setError(err.message || 'Error fetching KYC details');
+            console.error(err);
+        }
+    };
 
-            let kycDetailsResponse = await fetch(
-                `${API_BASE}/admin/kyc/${kycId}`,
-                { headers: kycDetailsHeaders }
+    const approveKyc = async (kycId) => {
+        try {
+            setSubmitting(true);
+            setError('');
+            await apiClient.post(`/admin/kyc/${kycId}/approve`);
+            setMessage('KYC approved successfully');
+            setDetailsModal(false);
+            await fetchKycSubmissions();
+        } catch (err) {
+            setError(err.message || 'Error approving KYC');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const rejectKyc = async (kycId, reason) => {
+        try {
+            setSubmitting(true);
+            setError('');
+            await apiClient.post(
+                `/admin/kyc/${kycId}/reject`,
+                { rejectionReason: reason }
             );
-
-            if (!kycDetailsResponse.ok) throw new Error('Failed to fetch KYC details');
-
-            const kycDetailsData = await kycDetailsResponse.json();
-            setSelectedKyc(kycDetailsData.data);
-            {detailsModal && selectedKyc && (
-                <div className="modal-overlay" onClick={() => setDetailsModal(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2>KYC Details</h2>
-                            <button className="close-btn" onClick={() => setDetailsModal(false)}>×</button>
-                        </div>
-                        <div className="modal-body">
-                            <div className="details-section">
-                                <h3>Personal Information</h3>
-                                <p><strong>Name:</strong> {selectedKyc.userName}</p>
-                                <p><strong>Email:</strong> {selectedKyc.userEmail}</p>
-                                <p><strong>Phone:</strong> {selectedKyc.userPhone}</p>
-                            </div>
-                            <div className="details-section">
-                                <h3>Address</h3>
-                                <p><strong>Street:</strong> {selectedKyc.streetAddress || 'N/A'}</p>
-                                <p><strong>City:</strong> {selectedKyc.city || 'N/A'}</p>
-                                <p><strong>State:</strong> {selectedKyc.state || 'N/A'}</p>
-                                <p><strong>Pincode:</strong> {selectedKyc.pincode || 'N/A'}</p>
-                            </div>
-                            <div className="details-section">
-                                <h3>Document Information</h3>
-                                <p><strong>Aadhaar (Last 4):</strong> {selectedKyc.aadhaarNumber || 'N/A'}</p>
-                                <p><strong>License (Last 4):</strong> {selectedKyc.drivingLicenseNumber || 'N/A'}</p>
-                                <p><strong>License Expiry:</strong> {selectedKyc.licenseExpiryDate || 'N/A'}</p>
-                            </div>
-                            <div className="details-section">
-                                <h3>Verification Status</h3>
-                                <p><strong>Status:</strong> {selectedKyc.verificationStatus}</p>
-                                {selectedKyc.rejectionReason && (
-                                    <p><strong>Rejection Reason:</strong> {selectedKyc.rejectionReason}</p>
-                                )}
-                                {selectedKyc.verifiedAt && (
-                                    <p><strong>Verified At:</strong> {new Date(selectedKyc.verifiedAt).toLocaleString()}</p>
-                                )}
-                            </div>
-                            {selectedKyc.verificationStatus === 'pending' && (
-                                <div className="approval-section">
-                                    <h3>Take Action</h3>
-                                    <div className="approval-buttons">
-                                        <button
-                                            className="btn-approve"
-                                            onClick={() => approveKyc(selectedKyc.kycId)}
-                                            disabled={submitting}
-                                        >
-                                            {submitting ? 'Processing...' : 'Approve KYC'}
-                                        </button>
-                                        <button
-                                            className="btn-reject"
-                                            onClick={() => {
-                                                const reason = prompt('Enter rejection reason:');
-                                                if (reason) {
-                                                    setRejectionReason(reason);
-                                                    rejectKyc(selectedKyc.kycId);
-                                                }
-                                            }}
-                                            disabled={submitting}
-                                        >
-                                            {submitting ? 'Processing...' : 'Reject KYC'}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-        const rejectKyc = async (kycId) => {
-            try {
-                setSubmitting(true);
-                setError('');
-                const rejectHeaders = {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                };
-
-                    let rejectResponse = await fetch(
-                    `${API_BASE}/admin/kyc/${kycId}/reject`,
-                    {
-                        method: 'POST',
-                        headers: rejectHeaders,
-                        body: JSON.stringify({ rejectionReason })
-                    }
-                );
-
-                if (!rejectResponse.ok) throw new Error('Failed to reject KYC');
-
-                setMessage('KYC rejected successfully');
-                setRejectionReason('');
-                setDetailsModal(false);
-                await fetchKycSubmissions();
-            } catch (err) {
-                setError(err.message || 'Error rejecting KYC');
-            } finally {
-                setSubmitting(false);
-            }
-        };
-
-            const detailsHeaders = {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            };
-            const detailsResponse = await fetch(
-                `${API_BASE}/admin/kyc/${kycId}`,
-                { headers: detailsHeaders }
-            );
-
-            if (!detailsResponse.ok) throw new Error('Failed to fetch KYC details');
-
-            const detailsData = await detailsResponse.json();
-            setSelectedKyc(detailsData.data);
-            {detailsModal && selectedKyc && (
-                <div className="modal-overlay" onClick={() => setDetailsModal(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2>KYC Details</h2>
-                            <button className="close-btn" onClick={() => setDetailsModal(false)}>×</button>
-                        </div>
-                        <div className="modal-body">
-                            {/* Download PDF Button */}
-                            <div style={{ textAlign: 'right', marginBottom: 10 }}>
-                                <button className="btn-pdf" onClick={handleDownloadPdf} disabled={downloading}>
-                                    {downloading ? 'Generating PDF...' : 'Download PDF'}
-                                </button>
-                            </div>
-                            {/* Printable KYC Details (hidden for html2canvas) */}
-                            <div ref={printRef} style={{ background: '#fff', color: '#000', padding: 24, width: 520, maxWidth: '100%', position: 'absolute', left: '-9999px', top: 0, zIndex: -1 }}>
-                                <h2 style={{ textAlign: 'center', marginBottom: 16 }}>KYC Details</h2>
-                                <div style={{ marginBottom: 12 }}>
-                                    <h3>Personal Information</h3>
-                                    <p><strong>Name:</strong> {selectedKyc.userName}</p>
-                                    <p><strong>Email:</strong> {selectedKyc.userEmail}</p>
-                                    <p><strong>Phone:</strong> {selectedKyc.userPhone}</p>
-                                </div>
-                                <div style={{ marginBottom: 12 }}>
-                                    <h3>Address</h3>
-                                    <p><strong>Street:</strong> {selectedKyc.streetAddress || 'N/A'}</p>
-                                    <p><strong>City:</strong> {selectedKyc.city || 'N/A'}</p>
-                                    <p><strong>State:</strong> {selectedKyc.state || 'N/A'}</p>
-                                    <p><strong>Pincode:</strong> {selectedKyc.pincode || 'N/A'}</p>
-                                </div>
-                                <div style={{ marginBottom: 12 }}>
-                                    <h3>Document Information</h3>
-                                    <p><strong>Aadhaar (Last 4):</strong> {selectedKyc.aadhaarNumber || 'N/A'}</p>
-                                    <p><strong>License (Last 4):</strong> {selectedKyc.drivingLicenseNumber || 'N/A'}</p>
-                                    <p><strong>License Expiry:</strong> {selectedKyc.licenseExpiryDate || 'N/A'}</p>
-                                </div>
-                                <div style={{ marginBottom: 12 }}>
-                                    <h3>Verification Status</h3>
-                                    <p><strong>Status:</strong> {selectedKyc.verificationStatus}</p>
-                                    {selectedKyc.rejectionReason && (
-                                        <p><strong>Rejection Reason:</strong> {selectedKyc.rejectionReason}</p>
-                                    )}
-                                    {selectedKyc.verifiedAt && (
-                                        <p><strong>Verified At:</strong> {new Date(selectedKyc.verifiedAt).toLocaleString()}</p>
-                                    )}
-                                </div>
-                                {/* Document Images */}
-                                {selectedKyc.documentPhotos && selectedKyc.documentPhotos.length > 0 && (
-                                    <div style={{ marginBottom: 12 }}>
-                                        <h3>Document Photos</h3>
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                                            {selectedKyc.documentPhotos.map((url, idx) => (
-                                                <div key={idx} style={{ border: '1px solid #ccc', padding: 4, background: '#fafafa' }}>
-                                                    <img src={url} alt={`Document ${idx + 1}`} style={{ maxWidth: 120, maxHeight: 120 }} crossOrigin="anonymous" />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            {/* Visible KYC Details (existing UI) */}
-                            <div className="details-section">
-                                <h3>Personal Information</h3>
-                                <p><strong>Name:</strong> {selectedKyc.userName}</p>
-                                <p><strong>Email:</strong> {selectedKyc.userEmail}</p>
-                                <p><strong>Phone:</strong> {selectedKyc.userPhone}</p>
-                            </div>
-                            <div className="details-section">
-                                <h3>Address</h3>
-                                <p><strong>Street:</strong> {selectedKyc.streetAddress || 'N/A'}</p>
-                                <p><strong>City:</strong> {selectedKyc.city || 'N/A'}</p>
-                                <p><strong>State:</strong> {selectedKyc.state || 'N/A'}</p>
-                                <p><strong>Pincode:</strong> {selectedKyc.pincode || 'N/A'}</p>
-                            </div>
-                            <div className="details-section">
-                                <h3>Document Information</h3>
-                                <p><strong>Aadhaar (Last 4):</strong> {selectedKyc.aadhaarNumber || 'N/A'}</p>
-                                <p><strong>License (Last 4):</strong> {selectedKyc.drivingLicenseNumber || 'N/A'}</p>
-                                <p><strong>License Expiry:</strong> {selectedKyc.licenseExpiryDate || 'N/A'}</p>
-                            </div>
-                            <div className="details-section">
-                                <h3>Verification Status</h3>
-                                <p><strong>Status:</strong> <span className={`status-badge status-${selectedKyc.verificationStatus}`}>{selectedKyc.verificationStatus}</span></p>
-                                {selectedKyc.rejectionReason && (
-                                    <p><strong>Rejection Reason:</strong> {selectedKyc.rejectionReason}</p>
-                                )}
-                                {selectedKyc.verifiedAt && (
-                                    <p><strong>Verified At:</strong> {new Date(selectedKyc.verifiedAt).toLocaleString()}</p>
-                                )}
-                            </div>
-                            {/* Document Images (visible) */}
-                            {selectedKyc.documentPhotos && selectedKyc.documentPhotos.length > 0 && (
-                                <div className="details-section">
-                                    <h3>Document Photos</h3>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                                        {selectedKyc.documentPhotos.map((url, idx) => (
-                                            <div key={idx} style={{ border: '1px solid #ccc', padding: 4, background: '#fafafa' }}>
-                                                <img src={url} alt={`Document ${idx + 1}`} style={{ maxWidth: 120, maxHeight: 120 }} crossOrigin="anonymous" />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                            {selectedKyc.verificationStatus === 'pending' && (
-                                <div className="approval-section">
-                                    <h3>Take Action</h3>
-                                    <div className="approval-buttons">
-                                        <button
-                                            className="btn-approve"
-                                            onClick={() => approveKyc(selectedKyc.kycId)}
-                                            disabled={submitting}
-                                        >
-                                            {submitting ? 'Processing...' : 'Approve KYC'}
-                                        </button>
-                                        <button
-                                            className="btn-reject"
-                                            onClick={() => {
-                                                const reason = prompt('Enter rejection reason:');
-                                                if (reason) {
-                                                    setRejectionReason(reason);
-                                                    rejectKyc(selectedKyc.kycId);
-                                                }
-                                            }}
-                                            disabled={submitting}
-                                        >
-                                            {submitting ? 'Processing...' : 'Reject KYC'}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-        const rejectHeaders2 = {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        };
-        const rejectResponse2 = await fetch(
-            `${API_BASE}/admin/kyc/${kycId}/reject`,
-            {
-                method: 'POST',
-                headers: rejectHeaders2,
-                body: JSON.stringify({ rejectionReason })
-            }
-        );
-
-        if (!rejectResponse2.ok) throw new Error('Failed to reject KYC');
-
-        setMessage('KYC rejected successfully');
-        setRejectionReason('');
-        setDetailsModal(false);
-        await fetchKycSubmissions();
-    } catch (err) {
+            setMessage('KYC rejected successfully');
+            setRejectionReason('');
+            setDetailsModal(false);
+            await fetchKycSubmissions();
+        } catch (err) {
             setError(err.message || 'Error rejecting KYC');
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const viewPdf = async (kycId) => {
+        try {
+            setError('');
+            const response = await apiClient.get(`/admin/kyc/${kycId}/pdf`, {
+                responseType: 'blob'
+            });
+            const blob = response.data;
+            const url = window.URL.createObjectURL(blob);
+            setPdfUrl(url);
+            setPdfModal(true);
+        } catch (err) {
+            setError(err.message || 'Error fetching PDF');
         }
     };
 
@@ -399,21 +171,10 @@ const AdminKycDashboard = () => {
         setPdfUrl('');
     };
 
-    // Derived lists for search & pagination
-    const filteredList = kycList.filter((k) => {
-        const q = searchQuery.trim().toLowerCase();
-        if (!q) return true;
-        return (
-            (k.userName || '').toString().toLowerCase().includes(q) ||
-            (k.userEmail || '').toString().toLowerCase().includes(q) ||
-            (k.city || '').toString().toLowerCase().includes(q)
-        );
-    });
-
-    const totalPages = Math.max(1, Math.ceil(filteredList.length / pageSize));
+    // Server-driven pagination
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
     const page = Math.min(currentPage, totalPages);
-    const startIndex = (page - 1) * pageSize;
-    const displayedList = filteredList.slice(startIndex, startIndex + pageSize);
+    const displayedList = Array.isArray(kycList) ? kycList : [];
 
     return (
         <div className="admin-kyc-dashboard">
@@ -505,8 +266,8 @@ const AdminKycDashboard = () => {
                     <div className="pagination-section">
                         <div className="pagination-controls">
                             <button className="pagination-btn" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>← Previous</button>
-                            <span className="pagination-info">Page {currentPage} of {Math.max(1, Math.ceil(filteredList.length / pageSize))}</span>
-                            <button className="pagination-btn" onClick={() => setCurrentPage((p) => p + 1)} disabled={currentPage >= Math.ceil(filteredList.length / pageSize)}>Next →</button>
+                            <span className="pagination-info">Page {currentPage} of {totalPages} • Page size {pageSize} • Total {totalItems}</span>
+                            <button className="pagination-btn" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages}>Next →</button>
                         </div>
                     </div>
                     </>
@@ -516,9 +277,9 @@ const AdminKycDashboard = () => {
             {/* Details Modal */}
             {detailsModal && selectedKyc && (
                 <div className="modal-overlay" onClick={() => setDetailsModal(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div className="modal-header">
-                            <h2>KYC Details</h2>
+                            <h2>KYC Details - {selectedKyc.userName}</h2>
                             <button className="close-btn" onClick={() => setDetailsModal(false)}>×</button>
                         </div>
 
@@ -545,6 +306,76 @@ const AdminKycDashboard = () => {
                                 <p><strong>License Expiry:</strong> {selectedKyc.licenseExpiryDate || 'N/A'}</p>
                             </div>
 
+                            {/* Uploaded Documents Section */}
+                            <div className="details-section">
+                                <h3>Uploaded Documents</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px', marginTop: '12px' }}>
+                                    {selectedKyc.aadhaarFrontUrl && (
+                                        <div style={{ border: '2px solid #e0e0e0', borderRadius: '8px', padding: '12px', background: '#f9f9f9' }}>
+                                            <h4 style={{ marginBottom: '8px', fontSize: '14px', color: '#555' }}>Aadhaar Front</h4>
+                                            <img 
+                                                src={selectedKyc.aadhaarFrontUrl.startsWith('http') ? selectedKyc.aadhaarFrontUrl : `http://localhost:5000/${selectedKyc.aadhaarFrontUrl}`} 
+                                                alt="Aadhaar Front" 
+                                                style={{ width: '100%', height: '180px', objectFit: 'contain', background: '#fff', borderRadius: '4px', cursor: 'pointer' }}
+                                                onClick={() => window.open(selectedKyc.aadhaarFrontUrl.startsWith('http') ? selectedKyc.aadhaarFrontUrl : `http://localhost:5000/${selectedKyc.aadhaarFrontUrl}`, '_blank')}
+                                                onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="10" y="50" font-size="12"%3EImage not found%3C/text%3E%3C/svg%3E'; }}
+                                            />
+                                        </div>
+                                    )}
+                                    {selectedKyc.aadhaarBackUrl && (
+                                        <div style={{ border: '2px solid #e0e0e0', borderRadius: '8px', padding: '12px', background: '#f9f9f9' }}>
+                                            <h4 style={{ marginBottom: '8px', fontSize: '14px', color: '#555' }}>Aadhaar Back</h4>
+                                            <img 
+                                                src={selectedKyc.aadhaarBackUrl.startsWith('http') ? selectedKyc.aadhaarBackUrl : `http://localhost:5000/${selectedKyc.aadhaarBackUrl}`} 
+                                                alt="Aadhaar Back" 
+                                                style={{ width: '100%', height: '180px', objectFit: 'contain', background: '#fff', borderRadius: '4px', cursor: 'pointer' }}
+                                                onClick={() => window.open(selectedKyc.aadhaarBackUrl.startsWith('http') ? selectedKyc.aadhaarBackUrl : `http://localhost:5000/${selectedKyc.aadhaarBackUrl}`, '_blank')}
+                                                onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="10" y="50" font-size="12"%3EImage not found%3C/text%3E%3C/svg%3E'; }}
+                                            />
+                                        </div>
+                                    )}
+                                    {selectedKyc.licenseFrontUrl && (
+                                        <div style={{ border: '2px solid #e0e0e0', borderRadius: '8px', padding: '12px', background: '#f9f9f9' }}>
+                                            <h4 style={{ marginBottom: '8px', fontSize: '14px', color: '#555' }}>License Front</h4>
+                                            <img 
+                                                src={selectedKyc.licenseFrontUrl.startsWith('http') ? selectedKyc.licenseFrontUrl : `http://localhost:5000/${selectedKyc.licenseFrontUrl}`} 
+                                                alt="License Front" 
+                                                style={{ width: '100%', height: '180px', objectFit: 'contain', background: '#fff', borderRadius: '4px', cursor: 'pointer' }}
+                                                onClick={() => window.open(selectedKyc.licenseFrontUrl.startsWith('http') ? selectedKyc.licenseFrontUrl : `http://localhost:5000/${selectedKyc.licenseFrontUrl}`, '_blank')}
+                                                onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="10" y="50" font-size="12"%3EImage not found%3C/text%3E%3C/svg%3E'; }}
+                                            />
+                                        </div>
+                                    )}
+                                    {selectedKyc.licenseBackUrl && (
+                                        <div style={{ border: '2px solid #e0e0e0', borderRadius: '8px', padding: '12px', background: '#f9f9f9' }}>
+                                            <h4 style={{ marginBottom: '8px', fontSize: '14px', color: '#555' }}>License Back</h4>
+                                            <img 
+                                                src={selectedKyc.licenseBackUrl.startsWith('http') ? selectedKyc.licenseBackUrl : `http://localhost:5000/${selectedKyc.licenseBackUrl}`} 
+                                                alt="License Back" 
+                                                style={{ width: '100%', height: '180px', objectFit: 'contain', background: '#fff', borderRadius: '4px', cursor: 'pointer' }}
+                                                onClick={() => window.open(selectedKyc.licenseBackUrl.startsWith('http') ? selectedKyc.licenseBackUrl : `http://localhost:5000/${selectedKyc.licenseBackUrl}`, '_blank')}
+                                                onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="10" y="50" font-size="12"%3EImage not found%3C/text%3E%3C/svg%3E'; }}
+                                            />
+                                        </div>
+                                    )}
+                                    {selectedKyc.selfieUrl && (
+                                        <div style={{ border: '2px solid #e0e0e0', borderRadius: '8px', padding: '12px', background: '#f9f9f9' }}>
+                                            <h4 style={{ marginBottom: '8px', fontSize: '14px', color: '#555' }}>Selfie</h4>
+                                            <img 
+                                                src={selectedKyc.selfieUrl.startsWith('http') ? selectedKyc.selfieUrl : `http://localhost:5000/${selectedKyc.selfieUrl}`} 
+                                                alt="Selfie" 
+                                                style={{ width: '100%', height: '180px', objectFit: 'contain', background: '#fff', borderRadius: '4px', cursor: 'pointer' }}
+                                                onClick={() => window.open(selectedKyc.selfieUrl.startsWith('http') ? selectedKyc.selfieUrl : `http://localhost:5000/${selectedKyc.selfieUrl}`, '_blank')}
+                                                onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="10" y="50" font-size="12"%3EImage not found%3C/text%3E%3C/svg%3E'; }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                                {!selectedKyc.aadhaarFrontUrl && !selectedKyc.aadhaarBackUrl && !selectedKyc.licenseFrontUrl && !selectedKyc.licenseBackUrl && !selectedKyc.selfieUrl && (
+                                    <p style={{ color: '#999', fontStyle: 'italic' }}>No documents uploaded</p>
+                                )}
+                            </div>
+
                             <div className="details-section">
                                 <h3>Verification Status</h3>
                                 <p><strong>Status:</strong> <span className={`status-badge status-${selectedKyc.verificationStatus}`}>{selectedKyc.verificationStatus}</span></p>
@@ -559,26 +390,52 @@ const AdminKycDashboard = () => {
                             {selectedKyc.verificationStatus === 'pending' && (
                                 <div className="approval-section">
                                     <h3>Take Action</h3>
+                                    
+                                    {/* Rejection Reason Input */}
+                                    <div style={{ marginBottom: '16px' }}>
+                                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                                            Rejection Reason (optional):
+                                        </label>
+                                        <textarea
+                                            value={rejectionReason}
+                                            onChange={(e) => setRejectionReason(e.target.value)}
+                                            placeholder="Enter reason if rejecting KYC..."
+                                            style={{
+                                                width: '100%',
+                                                minHeight: '80px',
+                                                padding: '10px',
+                                                border: '1px solid #ddd',
+                                                borderRadius: '4px',
+                                                fontSize: '14px',
+                                                fontFamily: 'inherit',
+                                                resize: 'vertical'
+                                            }}
+                                        />
+                                    </div>
+
                                     <div className="approval-buttons">
                                         <button
                                             className="btn-approve"
                                             onClick={() => approveKyc(selectedKyc.kycId)}
                                             disabled={submitting}
+                                            style={{ flex: 1, padding: '12px 24px', fontSize: '16px' }}
                                         >
-                                            {submitting ? 'Processing...' : 'Approve KYC'}
+                                            {submitting ? 'Processing...' : '✓ Approve KYC'}
                                         </button>
                                         <button
                                             className="btn-reject"
                                             onClick={() => {
-                                                const reason = prompt('Enter rejection reason:');
-                                                if (reason) {
-                                                    setRejectionReason(reason);
-                                                    rejectKyc(selectedKyc.kycId);
+                                                if (!rejectionReason.trim()) {
+                                                    if (!window.confirm('No rejection reason provided. Continue anyway?')) {
+                                                        return;
+                                                    }
                                                 }
+                                                rejectKyc(selectedKyc.kycId, rejectionReason || 'Documents do not meet requirements');
                                             }}
                                             disabled={submitting}
+                                            style={{ flex: 1, padding: '12px 24px', fontSize: '16px' }}
                                         >
-                                            {submitting ? 'Processing...' : 'Reject KYC'}
+                                            {submitting ? 'Processing...' : '✗ Reject KYC'}
                                         </button>
                                     </div>
                                 </div>

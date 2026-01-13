@@ -1,41 +1,82 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { LayoutDashboard, Users, FileText, CreditCard, Car, Bell, Newspaper, Briefcase, Menu, X, User, } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, CreditCard, Car, Bell, Newspaper, Briefcase, Menu, X, LogOut, } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { useAuth } from '../contexts/AuthContext';
+import apiClient from '../utils/apiClient';
 export const EnhancedAdminDashboard = ({ onNavigate }) => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const { switchToUserView } = useAuth();
-    const handleSwitchToUser = () => {
-        switchToUserView();
-        onNavigate('user-dashboard');
+    const [stats, setStats] = useState([]);
+    const [recentActivity, setRecentActivity] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchDashboardData();
+    }, []);
+
+    const fetchDashboardData = async () => {
+        try {
+            setLoading(true);
+            
+            // Fetch users count using apiClient (includes Authorization header)
+            const usersRes = await apiClient.get('/admin/users');
+            const usersData = usersRes.data || { items: [] };
+            const users = usersData.items || usersData || [];
+            
+            // Fetch KYC count using apiClient (includes Authorization header)
+            const kycRes = await apiClient.get('/admin/kyc/all');
+            const kycData = kycRes.data || { body: { items: [] } };
+            const kycMeta = kycData.body || kycData.data || kycData;
+            const kycList = Array.isArray(kycMeta.items) ? kycMeta.items : (Array.isArray(kycMeta) ? kycMeta : []);
+            
+            // Calculate stats
+            const statsData = [
+                { label: 'Total Users', value: users.length.toString(), color: 'text-blue-500', change: '+0%' },
+                { label: 'Active Vehicles', value: '0', color: 'text-green-500', change: '+0%' },
+                { label: 'Revenue', value: '₹0', color: 'text-purple-500', change: '+0%' },
+                { label: 'KYC Pending', value: kycList.filter(k => k.status === 'pending').length.toString(), color: 'text-yellow-500', change: '+0%' },
+                { label: 'Total Rides', value: '0', color: 'text-indigo-500', change: '+0%' },
+                { label: 'Avg Rating', value: '0.0', color: 'text-red-500', change: '+0%' },
+            ];
+            
+            setStats(statsData);
+        } catch (error) {
+            console.error('Error fetching dashboard data:', error);
+        } finally {
+            setLoading(false);
+        }
     };
+    
+    const handleLogout = () => {
+        localStorage.removeItem('kwick_user');
+        localStorage.removeItem('kwick_view_mode');
+        window.location.href = '/admin-secret-login';
+    };
+    
     const menuItems = [
         { label: 'Dashboard', icon: LayoutDashboard, page: 'admin-dashboard', badge: null },
-        { label: 'User Management', icon: Users, page: 'admin-users', badge: '3' },
-        { label: 'KYC Management', icon: FileText, page: 'admin-kyc', badge: '1' },
+        { label: 'User Management', icon: Users, page: 'admin-users', badge: null },
+        { label: 'KYC Management', icon: FileText, page: 'admin-kyc', badge: null },
         { label: 'Payments', icon: CreditCard, page: 'admin-payments', badge: null },
         { label: 'Fleet Management', icon: Car, page: 'admin-fleet', badge: null },
-        { label: 'Notifications', icon: Bell, page: 'admin-notifications', badge: '5' },
+        { label: 'Notifications', icon: Bell, page: 'admin-notifications', badge: null },
         { label: 'Blog CMS', icon: Newspaper, page: 'admin-blog', badge: null },
         { label: 'Career CMS', icon: Briefcase, page: 'admin-careers', badge: null },
     ];
-    const stats = [
-        { label: 'Total Users', value: '3', change: '+12%', color: 'text-blue-500' },
-        { label: 'Active Vehicles', value: '2', change: '+8%', color: 'text-green-500' },
-        { label: 'Total Revenue', value: '₹10,356', change: '+25%', color: 'text-green-500' },
-        { label: 'Pending KYC', value: '1', change: '-5%', color: 'text-yellow-500' },
-        { label: 'Pending Payments', value: '₹2,000', change: '+2', color: 'text-red-500' },
-        { label: 'Avg Rating', value: '4.8', change: '+0.2', color: 'text-yellow-500' },
-    ];
-    const recentActivity = [
-        { time: '5 mins ago', description: 'New KYC application from Priya Sharma' },
-        { time: '12 mins ago', description: 'Payment received from Raj Kumar (₹2,000)' },
-        { time: '1 hour ago', description: 'Vehicle UP16 EV 1234 assigned to Amit Singh' },
-        { time: '2 hours ago', description: 'New user registration: Suresh Patel' },
-    ];
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center pt-20">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading dashboard...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (<div className="min-h-screen bg-gray-50 pt-20">
       <div className="flex">
         {/* Sidebar */}
@@ -69,9 +110,9 @@ export const EnhancedAdminDashboard = ({ onNavigate }) => {
                   </h1>
                   <p className="text-gray-600">Monitor and manage your EV rental platform</p>
                 </div>
-                <Button onClick={handleSwitchToUser} variant="outline" className="border-blue-200 text-blue-500 hover:bg-blue-50">
-                  <User className="w-4 h-4 mr-2"/>
-                  Switch to User Dashboard
+                <Button onClick={handleLogout} variant="outline" className="border-red-200 text-red-500 hover:bg-red-50">
+                  <LogOut className="w-4 h-4 mr-2"/>
+                  Logout
                 </Button>
               </div>
             </motion.div>
@@ -139,33 +180,6 @@ export const EnhancedAdminDashboard = ({ onNavigate }) => {
 
               {/* Sidebar Info */}
               <div className="space-y-6">
-                {/* Notifications */}
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xl">Alerts</h3>
-                      <Badge className="bg-red-500">5</Badge>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="p-3 bg-red-50 border-l-4 border-red-500 rounded">
-                        <p className="text-sm">Payment overdue</p>
-                        <p className="text-xs text-gray-500">2 users</p>
-                      </div>
-                      <div className="p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded">
-                        <p className="text-sm">KYC pending approval</p>
-                        <p className="text-xs text-gray-500">1 application</p>
-                      </div>
-                      <div className="p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
-                        <p className="text-sm">New user registrations</p>
-                        <p className="text-xs text-gray-500">3 today</p>
-                      </div>
-                    </div>
-                    <Button onClick={() => onNavigate('admin-notifications')} className="w-full mt-4 bg-red-500 hover:bg-red-600">
-                      View All Notifications
-                    </Button>
-                  </CardContent>
-                </Card>
-
                 {/* System Status */}
                 <Card>
                   <CardContent className="p-6">
