@@ -35,6 +35,7 @@ public class AdminUsersController {
             @RequestParam(defaultValue = "50") int size,
             HttpServletRequest request
     ) {
+        logger.info("Admin fetching users: q='{}', page={}, size={}", q, page, size);
         List<User> allUsers = userRepository.findAll();
         
         // Apply search filter if query provided
@@ -61,6 +62,7 @@ public class AdminUsersController {
         response.put("page", page);
         response.put("size", size);
         
+        logger.info("Returning {} users (total filtered: {})", items.size(), filtered.size());
         return ResponseEntity.ok(response);
     }
 
@@ -73,6 +75,7 @@ public class AdminUsersController {
             @PathVariable @NonNull Long id,
             HttpServletRequest request
     ) {
+        logger.info("Admin fetching user by ID: {}", id);
         Optional<User> userOpt = userRepository.findById(id);
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(404)
@@ -94,6 +97,7 @@ public class AdminUsersController {
             @RequestBody @NonNull Map<String, String> body,
             HttpServletRequest request
     ) {
+        logger.info("Admin updating status for user {}: {}", id, body.get("status"));
         Optional<User> userOpt = userRepository.findById(id);
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(404)
