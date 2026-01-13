@@ -58,11 +58,7 @@ public class AdminKycController {
             @RequestParam(required = false, defaultValue = "20") int size,
             HttpServletRequest request) {
         try {
-            // Verify admin access
-            if (!isAdminUser(request)) {
-                return ResponseEntity.status(403).body(new ApiResponse<>("Forbidden: Admin access required"));
-            }
-
+            logger.info("Fetching KYC submissions: status={}, q={}, page={}, size={}", status, q, page, size);
             // Fetch all, filter, then paginate (sorted by createdAt desc if available)
             List<KycVerification> kycSubmissions = kycRepository.findAll();
             List<KycVerification> filtered = kycSubmissions.stream()
@@ -135,17 +131,15 @@ public class AdminKycController {
             @PathVariable(required = true) Long kycId,
             HttpServletRequest request) {
         try {
-            if (!isAdminUser(request)) {
-                return ResponseEntity.status(403).body(new ApiResponse<>("Forbidden: Admin access required"));
-            }
-
-            Optional<KycVerification> kycOpt = kycRepository.findById(java.util.Objects.requireNonNull(kycId));
+            logger.info("Fetching KYC details for kycId: {}", kycId);
+            Optional<KycVerification> kycOpt = kycRepository.findById(kycId);
             if (kycOpt.isEmpty()) {
+                logger.warn("KYC submission not found: {}", kycId);
                 return ResponseEntity.status(404).body(new ApiResponse<>("KYC submission not found"));
             }
 
             KycVerification kyc = kycOpt.get();
-            Optional<User> user = userRepository.findById(java.util.Objects.requireNonNull(kyc.getUserId()));
+            Optional<User> user = kyc.getUserId() != null ? userRepository.findById(kyc.getUserId()) : Optional.empty();
 
             Map<String, Object> details = new java.util.HashMap<>();
             details.put("kycId", kyc.getId());
