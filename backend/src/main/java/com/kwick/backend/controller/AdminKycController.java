@@ -45,8 +45,8 @@ public class AdminKycController {
     /**
      * Get all KYC submissions (with optional filtering by status)
      */
-        @GetMapping("/all")
-        public ResponseEntity<ApiResponse<Map<String, Object>>>> getAllKycSubmissions(
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getAllKycSubmissions(
             @RequestParam(required = false, defaultValue = "pending") String status,
             @RequestParam(required = false, defaultValue = "") String q,
             @RequestParam(required = false, defaultValue = "0") int page,
