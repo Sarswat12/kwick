@@ -3,6 +3,7 @@ package com.kwick.backend.controller;
 import com.kwick.backend.model.CtaRecord;
 import com.kwick.backend.repository.CtaRecordRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Sort;
 import java.util.List;
@@ -47,7 +48,7 @@ public class CtaRecordController {
     }
 
     @PutMapping("/{id}/status")
-    public Map<String, Object> updateStatus(@PathVariable Long id, @RequestBody Map<String, String> payload) {
+    public Map<String, Object> updateStatus(@PathVariable @NonNull Long id, @RequestBody Map<String, String> payload) {
         String status = payload.getOrDefault("status", "handled");
         CtaRecord rec = ctaRecordRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Not found"));
         rec.setStatus(status);

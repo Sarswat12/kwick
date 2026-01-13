@@ -65,7 +65,8 @@ public class AdminKycController {
                     .filter(k -> {
                         if (q == null || q.isBlank()) return true;
                         String qq = q.toLowerCase();
-                        Optional<User> u = k.getUserId() != null ? userRepository.findById(k.getUserId()) : Optional.empty();
+                        @NonNull Long userId = k.getUserId();
+                        Optional<User> u = userId != null ? userRepository.findById(userId) : Optional.empty();
                         return (u.map(User::getName).orElse("").toLowerCase().contains(qq))
                                 || (u.map(User::getEmail).orElse("").toLowerCase().contains(qq))
                                 || (k.getCity() != null && k.getCity().toLowerCase().contains(qq))

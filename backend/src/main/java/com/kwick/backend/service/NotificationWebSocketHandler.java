@@ -1,5 +1,6 @@
 package com.kwick.backend.service;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -16,16 +17,16 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
     private final Set<WebSocketSession> sessions = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+    public void afterConnectionEstablished(@NonNull WebSocketSession session) throws Exception {
         sessions.add(session);
     }
 
     @Override
-    public void afterConnectionClosed(WebSocketSession session, org.springframework.web.socket.CloseStatus status) throws Exception {
+    public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull org.springframework.web.socket.CloseStatus status) throws Exception {
         sessions.remove(session);
     }
 
-    public void broadcast(String json) {
+    public void broadcast(@NonNull String json) {
         TextMessage msg = new TextMessage(json);
         for (WebSocketSession s : sessions) {
             if (s.isOpen()) {

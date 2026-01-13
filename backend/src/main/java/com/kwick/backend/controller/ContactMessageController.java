@@ -3,6 +3,7 @@ package com.kwick.backend.controller;
 import com.kwick.backend.model.ContactMessage;
 import com.kwick.backend.repository.ContactMessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Sort;
 
@@ -49,7 +50,7 @@ public class ContactMessageController {
         }
 
     @PutMapping("/{id}/status")
-    public Map<String, Object> updateStatus(@PathVariable Long id, @RequestBody Map<String, String> payload) {
+    public Map<String, Object> updateStatus(@PathVariable @NonNull Long id, @RequestBody Map<String, String> payload) {
         String status = payload.getOrDefault("status", "handled");
         ContactMessage msg = contactMessageRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Not found"));
         msg.setStatus(status);
