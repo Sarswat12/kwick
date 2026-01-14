@@ -140,7 +140,11 @@ public class AdminKycController {
 
             KycVerification kyc = kycOpt.get();
             Long userId = kyc.getUserId();
-            Optional<User> user = (userId != null) ? userRepository.findById(userId) : Optional.empty();
+            if (userId == null) {
+                return ResponseEntity.status(400).body(new ApiResponse<>("User id missing for this KYC"));
+            }
+
+            Optional<User> user = userRepository.findById(userId);
 
             Map<String, Object> details = new java.util.HashMap<>();
             details.put("kycId", kyc.getId());
@@ -148,8 +152,11 @@ public class AdminKycController {
             details.put("userName", user.map(User::getName).orElse("Unknown"));
             details.put("userEmail", user.map(User::getEmail).orElse("N/A"));
             details.put("userPhone", user.map(User::getPhone).orElse("N/A"));
+            // Provide both masked and raw values for admin verification
             details.put("aadhaarNumber", maskNumber(kyc.getAadhaarNumber()));
+            details.put("aadhaarNumberRaw", kyc.getAadhaarNumber());
             details.put("drivingLicenseNumber", maskNumber(kyc.getDrivingLicenseNumber()));
+            details.put("drivingLicenseNumberRaw", kyc.getDrivingLicenseNumber());
             details.put("licenseExpiryDate", kyc.getLicenseExpiryDate());
             details.put("streetAddress", kyc.getStreetAddress());
             details.put("city", kyc.getCity());
@@ -161,6 +168,13 @@ public class AdminKycController {
             details.put("verifiedAt", kyc.getVerifiedAt());
             details.put("verifiedByAdmin", kyc.getVerifiedByAdmin());
             details.put("kycPdfUrl", kyc.getKycPdfUrl());
+            
+            // Expose uploaded document URLs as HTTP endpoints so admin can view originals
+            details.put("aadhaarFrontUrl", convertToHttpUrl(kyc.getAadhaarFrontUrl(), userId, "aadhaar"));
+            details.put("aadhaarBackUrl", convertToHttpUrl(kyc.getAadhaarBackUrl(), userId, "aadhaar"));
+            details.put("licenseFrontUrl", convertToHttpUrl(kyc.getLicenseFrontUrl(), userId, "license"));
+            details.put("licenseBackUrl", convertToHttpUrl(kyc.getLicenseBackUrl(), userId, "license"));
+            details.put("selfieUrl", convertToHttpUrl(kyc.getSelfieUrl(), userId, "selfie"));
 
             logger.info("Retrieved KYC details for kycId: {}, userId: {}", kycId, userId);
             return ResponseEntity.ok(new ApiResponse<>(details));
@@ -178,18 +192,27 @@ public class AdminKycController {
             @PathVariable(required = true) Long kycId,
             HttpServletRequest request) {
         try {
+            if (kycId == null) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>("KYC id is required"));
+            }
+
             Long adminId = getAdminId(request);
             if (adminId == null) {
                 return ResponseEntity.status(403).body(new ApiResponse<>("Forbidden: Admin access required"));
             }
 
-            Optional<KycVerification> kycOpt = kycRepository.findById(java.util.Objects.requireNonNull(kycId));
+            Optional<KycVerification> kycOpt = kycRepository.findById(kycId);
             if (kycOpt.isEmpty()) {
                 return ResponseEntity.status(404).body(new ApiResponse<>("KYC submission not found"));
             }
 
             KycVerification kyc = kycOpt.get();
-            Optional<User> user = userRepository.findById(java.util.Objects.requireNonNull(kyc.getUserId()));
+            Long userId = kyc.getUserId();
+            if (userId == null) {
+                return ResponseEntity.status(400).body(new ApiResponse<>("User id missing for this KYC"));
+            }
+
+            Optional<User> user = userRepository.findById(userId);
 
             if (user.isEmpty()) {
                 return ResponseEntity.status(404).body(new ApiResponse<>("User not found"));
@@ -231,6 +254,10 @@ public class AdminKycController {
             @RequestBody Map<String, String> payload,
             HttpServletRequest request) {
         try {
+            if (kycId == null) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>("KYC id is required"));
+            }
+
             Long adminId = getAdminId(request);
             if (adminId == null) {
                 return ResponseEntity.status(403).body(new ApiResponse<>("Forbidden: Admin access required"));
@@ -238,13 +265,18 @@ public class AdminKycController {
 
             String rejectionReason = payload.getOrDefault("rejectionReason", "Documents do not meet requirements");
 
-            Optional<KycVerification> kycOpt = kycRepository.findById(java.util.Objects.requireNonNull(kycId));
+            Optional<KycVerification> kycOpt = kycRepository.findById(kycId);
             if (kycOpt.isEmpty()) {
                 return ResponseEntity.status(404).body(new ApiResponse<>("KYC submission not found"));
             }
 
             KycVerification kyc = kycOpt.get();
-            Optional<User> user = userRepository.findById(java.util.Objects.requireNonNull(kyc.getUserId()));
+            Long userId = kyc.getUserId();
+            if (userId == null) {
+                return ResponseEntity.status(400).body(new ApiResponse<>("User id missing for this KYC"));
+            }
+
+            Optional<User> user = userRepository.findById(userId);
 
             if (user.isEmpty()) {
                 return ResponseEntity.status(404).body(new ApiResponse<>("User not found"));
@@ -290,7 +322,11 @@ public class AdminKycController {
                 return ResponseEntity.status(403).body(new ApiResponse<>("Forbidden: Admin access required"));
             }
 
-            Optional<KycVerification> kycOpt = kycRepository.findById(java.util.Objects.requireNonNull(kycId));
+            if (kycId == null) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>("KYC id is required"));
+            }
+
+            Optional<KycVerification> kycOpt = kycRepository.findById(kycId);
             if (kycOpt.isEmpty()) {
                 return ResponseEntity.status(404).body(new ApiResponse<>("KYC submission not found"));
             }
@@ -368,5 +404,23 @@ public class AdminKycController {
             return number;
         }
         return "**** **** " + number.substring(number.length() - 4);
+    }
+
+    /**
+     * Convert absolute file path to HTTP URL for serving via API
+     * e.g., C:\...\backend-uploads\kyc\17\aadhaar\file.jpg -> /api/kyc/file/17/aadhaar/file.jpg
+     */
+    private String convertToHttpUrl(String filePath, Long userId, String docType) {
+        if (filePath == null || filePath.isEmpty()) {
+            return null;
+        }
+        try {
+            // Extract filename from path (last part after last separator)
+            String filename = filePath.substring(filePath.lastIndexOf(java.io.File.separator) + 1);
+            return "/api/kyc/file/" + userId + "/" + docType + "/" + filename;
+        } catch (Exception e) {
+            logger.warn("Failed to convert file path to HTTP URL: {}", filePath, e);
+            return null;
+        }
     }
 }

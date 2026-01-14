@@ -302,7 +302,13 @@ const AdminKycDashboard = () => {
                             <div className="details-section">
                                 <h3>Document Information</h3>
                                 <p><strong>Aadhaar (Last 4):</strong> {selectedKyc.aadhaarNumber || 'N/A'}</p>
+                                {selectedKyc.aadhaarNumberRaw && (
+                                    <p style={{ color: '#d32f2f', fontSize: '14px' }}><strong>Aadhaar (Full):</strong> {selectedKyc.aadhaarNumberRaw}</p>
+                                )}
                                 <p><strong>License (Last 4):</strong> {selectedKyc.drivingLicenseNumber || 'N/A'}</p>
+                                {selectedKyc.drivingLicenseNumberRaw && (
+                                    <p style={{ color: '#d32f2f', fontSize: '14px' }}><strong>License (Full):</strong> {selectedKyc.drivingLicenseNumberRaw}</p>
+                                )}
                                 <p><strong>License Expiry:</strong> {selectedKyc.licenseExpiryDate || 'N/A'}</p>
                             </div>
 
@@ -372,7 +378,18 @@ const AdminKycDashboard = () => {
                                     )}
                                 </div>
                                 {!selectedKyc.aadhaarFrontUrl && !selectedKyc.aadhaarBackUrl && !selectedKyc.licenseFrontUrl && !selectedKyc.licenseBackUrl && !selectedKyc.selfieUrl && (
-                                    <p style={{ color: '#999', fontStyle: 'italic' }}>No documents uploaded</p>
+                                    <div style={{ padding: '16px', background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '4px', marginTop: '12px' }}>
+                                        <p style={{ color: '#856404', marginBottom: '8px' }}>⚠️ <strong>No documents uploaded yet</strong></p>
+                                        <p style={{ color: '#856404', fontSize: '13px', margin: '0' }}>
+                                            This user has submitted their details but may not have uploaded the required documents. 
+                                            Please contact the user or request re-submission with documents.
+                                        </p>
+                                        {selectedKyc.aadhaarNumberRaw && (
+                                            <p style={{ color: '#856404', fontSize: '13px', margin: '4px 0 0 0' }}>
+                                                <strong>Note:</strong> Aadhaar provided: {selectedKyc.aadhaarNumberRaw}
+                                            </p>
+                                        )}
+                                    </div>
                                 )}
                             </div>
 

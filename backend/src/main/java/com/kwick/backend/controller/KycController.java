@@ -509,4 +509,46 @@ public class KycController {
             return ResponseEntity.status(500).body(new ApiResponse<>("Failed to download KYC PDF: " + e.getMessage()));
         }
     }
+
+    /**
+     * Serve KYC document files
+     * Usage: /api/kyc/file/{userId}/aadhaar/filename
+     */
+    @GetMapping("/file/{userId}/{docType}/{filename:.+}")
+    public ResponseEntity<?> getKycFile(
+            @PathVariable String userId,
+            @PathVariable String docType,
+            @PathVariable String filename) {
+        try {
+            // Construct the file path safely - use user.dir to match LocalStorageService
+            Path basePath = Paths.get(System.getProperty("user.dir"), "backend-uploads", "kyc", userId, docType);
+            Path filePath = basePath.resolve(filename).normalize();
+
+            // Security check: ensure the file is within the intended directory
+            if (!filePath.getParent().equals(basePath)) {
+                logger.warn("Attempted path traversal attack: {}", filePath);
+                return ResponseEntity.status(403).body(new ApiResponse<>("Forbidden"));
+            }
+
+            if (!Files.exists(filePath)) {
+                logger.warn("KYC file not found: {}", filePath);
+                return ResponseEntity.status(404).body(new ApiResponse<>("File not found"));
+            }
+
+            byte[] fileContent = Files.readAllBytes(filePath);
+            String contentType = Files.probeContentType(filePath);
+            if (contentType == null) {
+                contentType = "application/octet-stream";
+            }
+
+            logger.info("Serving KYC file: {}", filePath);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_TYPE, contentType)
+                    .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(fileContent.length))
+                    .body(fileContent);
+        } catch (Exception e) {
+            logger.error("Error serving KYC file: {}", e.getMessage());
+            return ResponseEntity.status(500).body(new ApiResponse<>("Error serving file: " + e.getMessage()));
+        }
+    }
 }
