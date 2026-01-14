@@ -139,11 +139,12 @@ public class AdminKycController {
             }
 
             KycVerification kyc = kycOpt.get();
-            Optional<User> user = kyc.getUserId() != null ? userRepository.findById(kyc.getUserId()) : Optional.empty();
+            Long userId = kyc.getUserId();
+            Optional<User> user = (userId != null) ? userRepository.findById(userId) : Optional.empty();
 
             Map<String, Object> details = new java.util.HashMap<>();
             details.put("kycId", kyc.getId());
-            details.put("userId", kyc.getUserId());
+            details.put("userId", userId);
             details.put("userName", user.map(User::getName).orElse("Unknown"));
             details.put("userEmail", user.map(User::getEmail).orElse("N/A"));
             details.put("userPhone", user.map(User::getPhone).orElse("N/A"));
@@ -161,7 +162,7 @@ public class AdminKycController {
             details.put("verifiedByAdmin", kyc.getVerifiedByAdmin());
             details.put("kycPdfUrl", kyc.getKycPdfUrl());
 
-            logger.info("Retrieved KYC details for kycId: {}, userId: {}", kycId, kyc.getUserId());
+            logger.info("Retrieved KYC details for kycId: {}, userId: {}", kycId, userId);
             return ResponseEntity.ok(new ApiResponse<>(details));
         } catch (Exception e) {
             logger.error("Error retrieving KYC details for kycId: {}", kycId, e);
