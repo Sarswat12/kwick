@@ -9,6 +9,7 @@ import { Upload, FileText, CheckCircle, XCircle, Clock, Download, ArrowLeft, Cam
 import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
 import { UserDashboardSidebar } from "./UserDashboardSidebar";
+import { uploadAadhaarFront, uploadAadhaarBack, uploadLicenseFront, uploadLicenseBack, uploadSelfie, submitKycDetails } from "../utils/kyc";
 const translations = {
     en: {
         title: "Complete Your KYC",
@@ -134,6 +135,7 @@ export function EnhancedKYCPageWithLanguage({ onNavigate }) {
     const [step, setStep] = useState(1);
     const [language, setLanguage] = useState('en');
     const [showPDFPreview, setShowPDFPreview] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [kycData, setKycData] = useState({
         fullName: user?.name || "",
         email: user?.email || "",
@@ -186,22 +188,49 @@ export function EnhancedKYCPageWithLanguage({ onNavigate }) {
             onNavigate("dashboard");
         }
     };
-    const handleSubmit = () => {
-        if (!kycData.aadhaarFront || !kycData.licenseFront || !kycData.photo) {
-            toast.error(t.uploadRequired);
-            return;
-        }
-        updateUser({
-            kycStatus: "pending",
-            name: kycData.fullName,
-            email: kycData.email,
-            phone: kycData.phone,
+    const handleSubmit = async () => {
+      if (!kycData.aadhaarFront || !kycData.licenseFront || !kycData.photo) {
+        toast.error(t.uploadRequired);
+        return;
+      }
+
+      try {
+        setIsSubmitting(true);
+        toast.info(language === 'en' ? 'Uploading documents...' : 'दस्तावेज़ अपलोड हो रहे हैं...');
+
+        if (kycData.aadhaarFront) await uploadAadhaarFront(kycData.aadhaarFront);
+        if (kycData.aadhaarBack) await uploadAadhaarBack(kycData.aadhaarBack);
+        if (kycData.licenseFront) await uploadLicenseFront(kycData.licenseFront);
+        if (kycData.licenseBack) await uploadLicenseBack(kycData.licenseBack);
+        if (kycData.photo) await uploadSelfie(kycData.photo);
+
+        toast.info(language === 'en' ? 'Submitting KYC details...' : 'केवाईसी विवरण जमा हो रहे हैं...');
+        await submitKycDetails({
+          address: kycData.address,
+          city: kycData.city,
+          state: kycData.state,
+          pincode: kycData.pincode,
+          aadhaarNumber: kycData.aadhaarNumber,
+          licenseNumber: kycData.licenseNumber
         });
+
+        updateUser({
+          kycStatus: "pending",
+          name: kycData.fullName,
+          email: kycData.email,
+          phone: kycData.phone,
+        });
+
         toast.success(t.kycSubmitted);
-        setTimeout(() => {
-            updateUser({ kycStatus: "approved" });
-            toast.success(t.kycApproved);
-        }, 2000);
+        setShowPDFPreview(true);
+      }
+      catch (err) {
+        console.error('KYC submission failed', err);
+        toast.error(language === 'en' ? 'KYC submission failed. Please try again.' : 'केवाईसी जमा विफल। कृपया पुनः प्रयास करें।');
+      }
+      finally {
+        setIsSubmitting(false);
+      }
     };
     const downloadKYCForm = () => {
         const kycContent = `
@@ -632,10 +661,10 @@ Noida Sector 112 | hello@kwick.in
                   {step === 1 ? t.cancel : t.previous}
                 </Button>
 
-                {step < 4 ? (<Button onClick={handleNext} className="bg-primary">
+                {step < 4 ? (<Button onClick={handleNext} className="bg-primary" disabled={isSubmitting}>
                     {t.next}
                     <ChevronRight className="w-4 h-4 ml-2"/>
-                  </Button>) : (<Button onClick={handleSubmit} className="bg-primary">
+                  </Button>) : (<Button onClick={handleSubmit} className="bg-primary" disabled={isSubmitting}>
                     {t.submit}
                     <CheckCircle className="w-4 h-4 ml-2"/>
                   </Button>)}

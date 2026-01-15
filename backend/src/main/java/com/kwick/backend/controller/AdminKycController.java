@@ -132,6 +132,9 @@ public class AdminKycController {
             HttpServletRequest request) {
         try {
             logger.info("Fetching KYC details for kycId: {}", kycId);
+            if (kycId == null) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>("KYC id is required"));
+            }
             Optional<KycVerification> kycOpt = kycRepository.findById(kycId);
             if (kycOpt.isEmpty()) {
                 logger.warn("KYC submission not found: {}", kycId);
@@ -409,15 +412,18 @@ public class AdminKycController {
     /**
      * Convert absolute file path to HTTP URL for serving via API
      * e.g., C:\...\backend-uploads\kyc\17\aadhaar\file.jpg -> /api/kyc/file/17/aadhaar/file.jpg
+     * Properly URL-encodes the filename to handle spaces and special characters
      */
     private String convertToHttpUrl(String filePath, Long userId, String docType) {
         if (filePath == null || filePath.isEmpty()) {
             return null;
         }
         try {
-            // Extract filename from path (last part after last separator)
-            String filename = filePath.substring(filePath.lastIndexOf(java.io.File.separator) + 1);
-            return "/api/kyc/file/" + userId + "/" + docType + "/" + filename;
+            // Normalize and extract filename robustly across OS path separators
+            String filename = java.nio.file.Paths.get(filePath).getFileName().toString();
+            // URL-encode filename to handle spaces and special characters
+            String encodedFilename = java.net.URLEncoder.encode(filename, java.nio.charset.StandardCharsets.UTF_8);
+            return "/api/kyc/file/" + userId + "/" + docType + "/" + encodedFilename;
         } catch (Exception e) {
             logger.warn("Failed to convert file path to HTTP URL: {}", filePath, e);
             return null;

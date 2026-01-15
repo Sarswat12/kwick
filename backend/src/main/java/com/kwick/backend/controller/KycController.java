@@ -513,6 +513,7 @@ public class KycController {
     /**
      * Serve KYC document files
      * Usage: /api/kyc/file/{userId}/aadhaar/filename
+     * Handles URL-encoded filenames with spaces and special characters
      */
     @GetMapping("/file/{userId}/{docType}/{filename:.+}")
     public ResponseEntity<?> getKycFile(
@@ -520,9 +521,12 @@ public class KycController {
             @PathVariable String docType,
             @PathVariable String filename) {
         try {
+            // Decode URL-encoded filename (e.g., "file%20name.jpg" -> "file name.jpg")
+            String decodedFilename = java.net.URLDecoder.decode(filename, java.nio.charset.StandardCharsets.UTF_8);
+            
             // Construct the file path safely - use user.dir to match LocalStorageService
             Path basePath = Paths.get(System.getProperty("user.dir"), "backend-uploads", "kyc", userId, docType);
-            Path filePath = basePath.resolve(filename).normalize();
+            Path filePath = basePath.resolve(decodedFilename).normalize();
 
             // Security check: ensure the file is within the intended directory
             if (!filePath.getParent().equals(basePath)) {

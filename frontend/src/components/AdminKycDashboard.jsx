@@ -5,6 +5,17 @@ import { useAuth } from '../contexts/AuthContext';
 import apiClient from '../utils/apiClient';
 import '../styles/admin-kyc-dashboard.css';
 
+// Helper function to build proper image URLs
+const buildImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url;
+    }
+    // Remove leading slash if present to avoid double slashes
+    const path = url.startsWith('/') ? url.substring(1) : url;
+    return `http://localhost:5000/${path}`;
+};
+
 const AdminKycDashboard = () => {
     const { user } = useAuth();
     const [kycList, setKycList] = useState([]);
@@ -320,10 +331,10 @@ const AdminKycDashboard = () => {
                                         <div style={{ border: '2px solid #e0e0e0', borderRadius: '8px', padding: '12px', background: '#f9f9f9' }}>
                                             <h4 style={{ marginBottom: '8px', fontSize: '14px', color: '#555' }}>Aadhaar Front</h4>
                                             <img 
-                                                src={selectedKyc.aadhaarFrontUrl.startsWith('http') ? selectedKyc.aadhaarFrontUrl : `http://localhost:5000/${selectedKyc.aadhaarFrontUrl}`} 
+                                                src={buildImageUrl(selectedKyc.aadhaarFrontUrl)} 
                                                 alt="Aadhaar Front" 
                                                 style={{ width: '100%', height: '180px', objectFit: 'contain', background: '#fff', borderRadius: '4px', cursor: 'pointer' }}
-                                                onClick={() => window.open(selectedKyc.aadhaarFrontUrl.startsWith('http') ? selectedKyc.aadhaarFrontUrl : `http://localhost:5000/${selectedKyc.aadhaarFrontUrl}`, '_blank')}
+                                                onClick={() => window.open(buildImageUrl(selectedKyc.aadhaarFrontUrl), '_blank')}
                                                 onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="10" y="50" font-size="12"%3EImage not found%3C/text%3E%3C/svg%3E'; }}
                                             />
                                         </div>
@@ -332,10 +343,10 @@ const AdminKycDashboard = () => {
                                         <div style={{ border: '2px solid #e0e0e0', borderRadius: '8px', padding: '12px', background: '#f9f9f9' }}>
                                             <h4 style={{ marginBottom: '8px', fontSize: '14px', color: '#555' }}>Aadhaar Back</h4>
                                             <img 
-                                                src={selectedKyc.aadhaarBackUrl.startsWith('http') ? selectedKyc.aadhaarBackUrl : `http://localhost:5000/${selectedKyc.aadhaarBackUrl}`} 
+                                                src={buildImageUrl(selectedKyc.aadhaarBackUrl)} 
                                                 alt="Aadhaar Back" 
                                                 style={{ width: '100%', height: '180px', objectFit: 'contain', background: '#fff', borderRadius: '4px', cursor: 'pointer' }}
-                                                onClick={() => window.open(selectedKyc.aadhaarBackUrl.startsWith('http') ? selectedKyc.aadhaarBackUrl : `http://localhost:5000/${selectedKyc.aadhaarBackUrl}`, '_blank')}
+                                                onClick={() => window.open(buildImageUrl(selectedKyc.aadhaarBackUrl), '_blank')}
                                                 onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="10" y="50" font-size="12"%3EImage not found%3C/text%3E%3C/svg%3E'; }}
                                             />
                                         </div>
@@ -344,10 +355,10 @@ const AdminKycDashboard = () => {
                                         <div style={{ border: '2px solid #e0e0e0', borderRadius: '8px', padding: '12px', background: '#f9f9f9' }}>
                                             <h4 style={{ marginBottom: '8px', fontSize: '14px', color: '#555' }}>License Front</h4>
                                             <img 
-                                                src={selectedKyc.licenseFrontUrl.startsWith('http') ? selectedKyc.licenseFrontUrl : `http://localhost:5000/${selectedKyc.licenseFrontUrl}`} 
+                                                src={buildImageUrl(selectedKyc.licenseFrontUrl)} 
                                                 alt="License Front" 
                                                 style={{ width: '100%', height: '180px', objectFit: 'contain', background: '#fff', borderRadius: '4px', cursor: 'pointer' }}
-                                                onClick={() => window.open(selectedKyc.licenseFrontUrl.startsWith('http') ? selectedKyc.licenseFrontUrl : `http://localhost:5000/${selectedKyc.licenseFrontUrl}`, '_blank')}
+                                                onClick={() => window.open(buildImageUrl(selectedKyc.licenseFrontUrl), '_blank')}
                                                 onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="10" y="50" font-size="12"%3EImage not found%3C/text%3E%3C/svg%3E'; }}
                                             />
                                         </div>
@@ -356,10 +367,10 @@ const AdminKycDashboard = () => {
                                         <div style={{ border: '2px solid #e0e0e0', borderRadius: '8px', padding: '12px', background: '#f9f9f9' }}>
                                             <h4 style={{ marginBottom: '8px', fontSize: '14px', color: '#555' }}>License Back</h4>
                                             <img 
-                                                src={selectedKyc.licenseBackUrl.startsWith('http') ? selectedKyc.licenseBackUrl : `http://localhost:5000/${selectedKyc.licenseBackUrl}`} 
+                                                src={buildImageUrl(selectedKyc.licenseBackUrl)} 
                                                 alt="License Back" 
                                                 style={{ width: '100%', height: '180px', objectFit: 'contain', background: '#fff', borderRadius: '4px', cursor: 'pointer' }}
-                                                onClick={() => window.open(selectedKyc.licenseBackUrl.startsWith('http') ? selectedKyc.licenseBackUrl : `http://localhost:5000/${selectedKyc.licenseBackUrl}`, '_blank')}
+                                                onClick={() => window.open(buildImageUrl(selectedKyc.licenseBackUrl), '_blank')}
                                                 onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="10" y="50" font-size="12"%3EImage not found%3C/text%3E%3C/svg%3E'; }}
                                             />
                                         </div>
@@ -368,10 +379,10 @@ const AdminKycDashboard = () => {
                                         <div style={{ border: '2px solid #e0e0e0', borderRadius: '8px', padding: '12px', background: '#f9f9f9' }}>
                                             <h4 style={{ marginBottom: '8px', fontSize: '14px', color: '#555' }}>Selfie</h4>
                                             <img 
-                                                src={selectedKyc.selfieUrl.startsWith('http') ? selectedKyc.selfieUrl : `http://localhost:5000/${selectedKyc.selfieUrl}`} 
+                                                src={buildImageUrl(selectedKyc.selfieUrl)} 
                                                 alt="Selfie" 
                                                 style={{ width: '100%', height: '180px', objectFit: 'contain', background: '#fff', borderRadius: '4px', cursor: 'pointer' }}
-                                                onClick={() => window.open(selectedKyc.selfieUrl.startsWith('http') ? selectedKyc.selfieUrl : `http://localhost:5000/${selectedKyc.selfieUrl}`, '_blank')}
+                                                onClick={() => window.open(buildImageUrl(selectedKyc.selfieUrl), '_blank')}
                                                 onError={(e) => { e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="10" y="50" font-size="12"%3EImage not found%3C/text%3E%3C/svg%3E'; }}
                                             />
                                         </div>
