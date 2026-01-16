@@ -331,12 +331,32 @@ public class KycController {
             @RequestBody Map<String, Object> payload,
             HttpServletRequest request) {
         try {
+            logger.info("=== KYC Submit Request Received ===");
+            logger.info("Request URI: {}", request.getRequestURI());
+            logger.info("Payload: {}", payload);
+            
+            // Check Authorization header
+            String authHeader = request.getHeader("Authorization");
+            logger.info("Authorization header present: {}", authHeader != null ? "YES" : "NO");
+            if (authHeader != null) {
+                logger.info("Authorization header value: {}", authHeader.substring(0, Math.min(20, authHeader.length())) + "...");
+            }
+            
+            // Check userId attribute
+            Object userIdAttr = request.getAttribute("userId");
+            logger.info("userId attribute: {}", userIdAttr);
+            logger.info("userId attribute type: {}", userIdAttr != null ? userIdAttr.getClass().getName() : "null");
+            
             Long userId = getUserId(request);
+            logger.info("Parsed userId: {}", userId);
+            
             if (userId == null) {
-                return ResponseEntity.status(401).body(new ApiResponse<>("Unauthorized"));
+                logger.error("UNAUTHORIZED: userId is null");
+                return ResponseEntity.status(401).body(new ApiResponse<>("Unauthorized - User ID not found"));
             }
 
             KycVerification kyc = kycRepository.findByUserId(userId).orElseGet(() -> {
+                logger.info("Creating new KYC record for user: {}", userId);
                 KycVerification k = new KycVerification();
                 k.setUserId(userId);
                 return k;
@@ -363,12 +383,14 @@ public class KycController {
             }
 
             kyc.setVerificationStatus("pending");
+            logger.info("Saving KYC record for user: {}", userId);
             kycRepository.saveAndFlush(kyc);
 
             // Update user KYC status
             User u = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
             u.setKycStatus("pending");
             userRepository.save(u);
+            logger.info("Updated user {} KYC status to pending", userId);
 
             // Generate and store PDF
             try {
@@ -398,12 +420,13 @@ public class KycController {
                 logger.warn("Could not send KYC submission email for user {}: {}", userId, emailEx.getMessage());
             }
 
-            logger.info("KYC submitted for user: {} with status: pending", userId);
+            logger.info("✅ KYC submitted successfully for user: {} with status: pending", userId);
             return ResponseEntity.ok(new ApiResponse<>(Map.of(
                     "message", "KYC submitted for verification",
-                    "kycId", kyc.getId())));
+                    "kycId", kyc.getId(),
+                    "userId", userId)));
         } catch (Exception e) {
-            logger.error("Error submitting KYC: {}", e.getMessage());
+            logger.error("❌ Error submitting KYC: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(new ApiResponse<>("KYC submission failed: " + e.getMessage()));
         }
     }

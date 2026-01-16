@@ -40,20 +40,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain)
             throws ServletException, IOException {
         String path = request.getRequestURI();
+        
+        logger.debug("JWT Filter processing: {} {}", request.getMethod(), path);
 
         // Skip filtering for explicitly public endpoints only
         if (path.equals("/") || path.equals("/api") || path.startsWith("/api/auth/") || path.startsWith("/api/health") || path.startsWith("/api/kyc/debug") || path.startsWith("/error")) {
+            logger.debug("Skipping JWT filter for public endpoint: {}", path);
             filterChain.doFilter(request, response);
             return;
         }
 
         String header = request.getHeader("Authorization");
+        logger.debug("Authorization header: {}", header != null ? "Present" : "Missing");
 
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
+            logger.debug("Extracted token (first 20 chars): {}...", token.substring(0, Math.min(20, token.length())));
+            
             try {
                 DecodedJWT decoded = jwtUtil.parseClaims(token);
                 String userId = decoded.getSubject();
+                logger.info("✅ Token validated successfully for userId: {}", userId);
                 request.setAttribute("userId", userId);
 
                 try {
@@ -70,18 +77,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         SecurityContextHolder.getContext().setAuthentication(auth);
                         logger.info("Authenticated user {} with role: {} (authority: ROLE_{})", uid, role, role.toUpperCase());
                     } else {
-                        logger.warn("User ID {} from token not found in database", uid);
+                        logger.warn("❌ User ID {} from token not found in database", uid);
                     }
                 } catch (NumberFormatException nfe) {
-                    logger.warn("Invalid user ID format in token: {}", userId);
+                    logger.warn("❌ Invalid user ID format in token: {}", userId);
                 } catch (Exception e) {
-                    logger.error("Error setting authentication for user {}: {}", userId, e.getMessage(), e);
+                    logger.error("❌ Error setting authentication for user {}: {}", userId, e.getMessage(), e);
                 }
             } catch (Exception ex) {
-                logger.warn("Invalid token in request: {}", ex.getMessage());
+                logger.warn("❌ Invalid token in request: {}", ex.getMessage());
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
                 return;
             }
+        } else {
+            logger.warn("❌ No valid Authorization header found for protected endpoint: {}", path);
         }
 
         filterChain.doFilter(request, response);
