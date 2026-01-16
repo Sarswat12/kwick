@@ -198,6 +198,7 @@ export function EnhancedKYCPageWithLanguage({ onNavigate }) {
         setIsSubmitting(true);
         toast.info(language === 'en' ? 'Uploading documents...' : 'दस्तावेज़ अपलोड हो रहे हैं...');
 
+        // Upload all documents
         if (kycData.aadhaarFront) await uploadAadhaarFront(kycData.aadhaarFront);
         if (kycData.aadhaarBack) await uploadAadhaarBack(kycData.aadhaarBack);
         if (kycData.licenseFront) await uploadLicenseFront(kycData.licenseFront);
@@ -205,7 +206,9 @@ export function EnhancedKYCPageWithLanguage({ onNavigate }) {
         if (kycData.photo) await uploadSelfie(kycData.photo);
 
         toast.info(language === 'en' ? 'Submitting KYC details...' : 'केवाईसी विवरण जमा हो रहे हैं...');
-        await submitKycDetails({
+        
+        // Submit KYC details to backend
+        const response = await submitKycDetails({
           address: kycData.address,
           city: kycData.city,
           state: kycData.state,
@@ -214,6 +217,9 @@ export function EnhancedKYCPageWithLanguage({ onNavigate }) {
           licenseNumber: kycData.licenseNumber
         });
 
+        console.log('KYC submission response:', response);
+
+        // Update local user state to reflect pending status
         updateUser({
           kycStatus: "pending",
           name: kycData.fullName,
@@ -221,12 +227,19 @@ export function EnhancedKYCPageWithLanguage({ onNavigate }) {
           phone: kycData.phone,
         });
 
+        // Show success message
         toast.success(t.kycSubmitted);
+        
+        // Force a small delay to ensure state updates propagate
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Don't navigate away - the component will re-render with pending status
         setShowPDFPreview(true);
       }
       catch (err) {
-        console.error('KYC submission failed', err);
-        toast.error(language === 'en' ? 'KYC submission failed. Please try again.' : 'केवाईसी जमा विफल। कृपया पुनः प्रयास करें।');
+        console.error('KYC submission failed:', err);
+        const errorMsg = err.response?.data?.error || err.message || 'Unknown error';
+        toast.error(language === 'en' ? `KYC submission failed: ${errorMsg}` : `केवाईसी जमा विफल: ${errorMsg}`);
       }
       finally {
         setIsSubmitting(false);

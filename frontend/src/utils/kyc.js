@@ -50,9 +50,22 @@ export async function submitKycDetails(payload) {
     }
     
     console.log('Submitting KYC details:', payload);
-    const resp = await api.post('/kyc/submit', payload, { headers });
-    console.log('KYC submit response:', resp.data);
-    return resp.data;
+    console.log('Using token:', token ? 'Present' : 'Missing');
+    
+    try {
+        const resp = await api.post('/kyc/submit', payload, { headers });
+        console.log('KYC submit response:', resp.data);
+        
+        if (!resp.data || !resp.data.ok) {
+            throw new Error(resp.data?.error || 'KYC submission failed');
+        }
+        
+        return resp.data;
+    } catch (error) {
+        console.error('KYC submission error:', error);
+        console.error('Error response:', error.response?.data);
+        throw error;
+    }
 }
 
 // Get KYC status
