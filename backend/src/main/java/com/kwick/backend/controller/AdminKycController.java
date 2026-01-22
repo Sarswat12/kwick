@@ -150,34 +150,34 @@ public class AdminKycController {
             Optional<User> user = userRepository.findById(userId);
 
             Map<String, Object> details = new java.util.HashMap<>();
-            details.put("kycId", kyc.getId());
+            try { details.put("kycId", kyc.getId()); } catch (Exception ex) { details.put("kycId", null); }
             details.put("userId", userId);
-            details.put("userName", user.map(User::getName).orElse("Unknown"));
-            details.put("userEmail", user.map(User::getEmail).orElse("N/A"));
-            details.put("userPhone", user.map(User::getPhone).orElse("N/A"));
+            try { details.put("userName", user.map(User::getName).orElse("Unknown")); } catch (Exception ex) { details.put("userName", "Unknown"); }
+            try { details.put("userEmail", user.map(User::getEmail).orElse("N/A")); } catch (Exception ex) { details.put("userEmail", "N/A"); }
+            try { details.put("userPhone", user.map(User::getPhone).orElse("N/A")); } catch (Exception ex) { details.put("userPhone", "N/A"); }
             // Provide both masked and raw values for admin verification
-            details.put("aadhaarNumber", maskNumber(kyc.getAadhaarNumber()));
-            details.put("aadhaarNumberRaw", kyc.getAadhaarNumber());
-            details.put("drivingLicenseNumber", maskNumber(kyc.getDrivingLicenseNumber()));
-            details.put("drivingLicenseNumberRaw", kyc.getDrivingLicenseNumber());
-            details.put("licenseExpiryDate", kyc.getLicenseExpiryDate());
-            details.put("streetAddress", kyc.getStreetAddress());
-            details.put("city", kyc.getCity());
-            details.put("state", kyc.getState());
-            details.put("pincode", kyc.getPincode());
-            details.put("verificationStatus", kyc.getVerificationStatus());
-            details.put("rejectionReason", kyc.getRejectionReason());
-            details.put("createdAt", kyc.getCreatedAt());
-            details.put("verifiedAt", kyc.getVerifiedAt());
-            details.put("verifiedByAdmin", kyc.getVerifiedByAdmin());
-            details.put("kycPdfUrl", kyc.getKycPdfUrl());
-            
+            try { details.put("aadhaarNumber", maskNumber(kyc.getAadhaarNumber())); } catch (Exception ex) { details.put("aadhaarNumber", ""); }
+            try { details.put("aadhaarNumberRaw", kyc.getAadhaarNumber()); } catch (Exception ex) { details.put("aadhaarNumberRaw", ""); }
+            try { details.put("drivingLicenseNumber", maskNumber(kyc.getDrivingLicenseNumber())); } catch (Exception ex) { details.put("drivingLicenseNumber", ""); }
+            try { details.put("drivingLicenseNumberRaw", kyc.getDrivingLicenseNumber()); } catch (Exception ex) { details.put("drivingLicenseNumberRaw", ""); }
+            try { details.put("licenseExpiryDate", kyc.getLicenseExpiryDate()); } catch (Exception ex) { details.put("licenseExpiryDate", ""); }
+            try { details.put("streetAddress", kyc.getStreetAddress()); } catch (Exception ex) { details.put("streetAddress", ""); }
+            try { details.put("city", kyc.getCity()); } catch (Exception ex) { details.put("city", ""); }
+            try { details.put("state", kyc.getState()); } catch (Exception ex) { details.put("state", ""); }
+            try { details.put("pincode", kyc.getPincode()); } catch (Exception ex) { details.put("pincode", ""); }
+            try { details.put("verificationStatus", kyc.getVerificationStatus()); } catch (Exception ex) { details.put("verificationStatus", ""); }
+            try { details.put("rejectionReason", kyc.getRejectionReason()); } catch (Exception ex) { details.put("rejectionReason", ""); }
+            try { details.put("createdAt", kyc.getCreatedAt()); } catch (Exception ex) { details.put("createdAt", null); }
+            try { details.put("verifiedAt", kyc.getVerifiedAt()); } catch (Exception ex) { details.put("verifiedAt", null); }
+            try { details.put("verifiedByAdmin", kyc.getVerifiedByAdmin()); } catch (Exception ex) { details.put("verifiedByAdmin", null); }
+            try { details.put("kycPdfUrl", kyc.getKycPdfUrl()); } catch (Exception ex) { details.put("kycPdfUrl", ""); }
+
             // Expose uploaded document URLs as HTTP endpoints so admin can view originals
-            details.put("aadhaarFrontUrl", convertToHttpUrl(kyc.getAadhaarFrontUrl(), userId, "aadhaar"));
-            details.put("aadhaarBackUrl", convertToHttpUrl(kyc.getAadhaarBackUrl(), userId, "aadhaar"));
-            details.put("licenseFrontUrl", convertToHttpUrl(kyc.getLicenseFrontUrl(), userId, "license"));
-            details.put("licenseBackUrl", convertToHttpUrl(kyc.getLicenseBackUrl(), userId, "license"));
-            details.put("selfieUrl", convertToHttpUrl(kyc.getSelfieUrl(), userId, "selfie"));
+            try { details.put("aadhaarFrontUrl", convertToHttpUrl(kyc.getAadhaarFrontUrl(), userId, "aadhaar")); } catch (Exception ex) { details.put("aadhaarFrontUrl", ""); }
+            try { details.put("aadhaarBackUrl", convertToHttpUrl(kyc.getAadhaarBackUrl(), userId, "aadhaar")); } catch (Exception ex) { details.put("aadhaarBackUrl", ""); }
+            try { details.put("licenseFrontUrl", convertToHttpUrl(kyc.getLicenseFrontUrl(), userId, "license")); } catch (Exception ex) { details.put("licenseFrontUrl", ""); }
+            try { details.put("licenseBackUrl", convertToHttpUrl(kyc.getLicenseBackUrl(), userId, "license")); } catch (Exception ex) { details.put("licenseBackUrl", ""); }
+            try { details.put("selfieUrl", convertToHttpUrl(kyc.getSelfieUrl(), userId, "selfie")); } catch (Exception ex) { details.put("selfieUrl", ""); }
 
             logger.info("Retrieved KYC details for kycId: {}, userId: {}", kycId, userId);
             return ResponseEntity.ok(new ApiResponse<>(details));

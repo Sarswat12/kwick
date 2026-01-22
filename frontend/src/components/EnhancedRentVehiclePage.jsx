@@ -14,7 +14,7 @@ const PLANS = [
     {
         id: "daily",
         name: "Daily Rental",
-        price: 250,
+        price: 99,
         originalPrice: 400,
         duration: "per day",
         earning: "₹600-1,200/day",

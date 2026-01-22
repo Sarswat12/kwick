@@ -282,4 +282,3 @@ import { fetchPayments, initiatePayment } from "../utils/payments";
         </Card>
       </motion.div>
     </div>);
-}

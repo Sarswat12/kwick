@@ -334,55 +334,43 @@ public class KycController {
             logger.info("=== KYC Submit Request Received ===");
             logger.info("Request URI: {}", request.getRequestURI());
             logger.info("Payload: {}", payload);
-            
+
             // Check Authorization header
             String authHeader = request.getHeader("Authorization");
-            logger.info("Authorization header present: {}", authHeader != null ? "YES" : "NO");
-            if (authHeader != null) {
-                logger.info("Authorization header value: {}", authHeader.substring(0, Math.min(20, authHeader.length())) + "...");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                logger.error("Missing or invalid Authorization header");
+                return ResponseEntity.status(401).body(new ApiResponse<>("Unauthorized - Missing token"));
             }
-            
-            // Check userId attribute
-            Object userIdAttr = request.getAttribute("userId");
-            logger.info("userId attribute: {}", userIdAttr);
-            logger.info("userId attribute type: {}", userIdAttr != null ? userIdAttr.getClass().getName() : "null");
-            
+
             Long userId = getUserId(request);
-            logger.info("Parsed userId: {}", userId);
-            
             if (userId == null) {
                 logger.error("UNAUTHORIZED: userId is null");
                 return ResponseEntity.status(401).body(new ApiResponse<>("Unauthorized - User ID not found"));
             }
 
+            // Validate required fields
+            String[] requiredFields = {"aadhaarNumber", "licenseNumber", "address", "city", "state", "pincode"};
+            for (String field : requiredFields) {
+                if (!payload.containsKey(field) || payload.get(field) == null || payload.get(field).toString().trim().isEmpty()) {
+                    logger.warn("Validation failed: missing field {}", field);
+                    return ResponseEntity.badRequest().body(new ApiResponse<>("Missing required field: " + field));
+                }
+            }
+
+            // Always create or update a 'pending' KYC record
             KycVerification kyc = kycRepository.findByUserId(userId).orElseGet(() -> {
-                logger.info("Creating new KYC record for user: {}", userId);
                 KycVerification k = new KycVerification();
                 k.setUserId(userId);
                 return k;
             });
-
-            // Set personal details from payload
-            if (payload.containsKey("aadhaarNumber")) {
-                kyc.setAadhaarNumber((String) payload.get("aadhaarNumber"));
-            }
-            if (payload.containsKey("licenseNumber")) {
-                kyc.setDrivingLicenseNumber((String) payload.get("licenseNumber"));
-            }
-            if (payload.containsKey("address")) {
-                kyc.setStreetAddress((String) payload.get("address"));
-            }
-            if (payload.containsKey("city")) {
-                kyc.setCity((String) payload.get("city"));
-            }
-            if (payload.containsKey("state")) {
-                kyc.setState((String) payload.get("state"));
-            }
-            if (payload.containsKey("pincode")) {
-                kyc.setPincode((String) payload.get("pincode"));
-            }
-
+            kyc.setAadhaarNumber((String) payload.get("aadhaarNumber"));
+            kyc.setDrivingLicenseNumber((String) payload.get("licenseNumber"));
+            kyc.setStreetAddress((String) payload.get("address"));
+            kyc.setCity((String) payload.get("city"));
+            kyc.setState((String) payload.get("state"));
+            kyc.setPincode((String) payload.get("pincode"));
             kyc.setVerificationStatus("pending");
+            kyc.setUpdatedAt(java.time.LocalDateTime.now());
             logger.info("Saving KYC record for user: {}", userId);
             kycRepository.saveAndFlush(kyc);
 
@@ -395,14 +383,11 @@ public class KycController {
             // Generate and store PDF
             try {
                 byte[] pdfBytes = pdfGenerationService.generateKycPdf(kyc, u);
-                // Save PDF to backend-uploads directory
                 String pdfFileName = "kyc_" + userId + "_" + System.currentTimeMillis() + ".pdf";
                 Path uploadDir = Paths.get("backend-uploads", "kyc", userId.toString());
                 Files.createDirectories(uploadDir);
                 Path filePath = uploadDir.resolve(pdfFileName);
                 Files.write(filePath, pdfBytes);
-
-                // Store the relative path in the database
                 String relativeUrl = "backend-uploads/kyc/" + userId + "/" + pdfFileName;
                 kyc.setKycPdfUrl(relativeUrl);
                 kycRepository.saveAndFlush(kyc);

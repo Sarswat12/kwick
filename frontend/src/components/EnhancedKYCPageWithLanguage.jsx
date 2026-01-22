@@ -194,6 +194,17 @@ export function EnhancedKYCPageWithLanguage({ onNavigate }) {
         return;
       }
 
+      // Check authentication before proceeding
+      const token = localStorage.getItem('kwick_token');
+      if (!token) {
+        toast.error(language === 'en' ?
+          'You are not logged in. Please login again.' :
+          'आप लॉग इन नहीं हैं। कृपया फिर से लॉगिन करें।'
+        );
+        onNavigate('home');
+        return;
+      }
+
       try {
         setIsSubmitting(true);
         toast.info(language === 'en' ? 'Uploading documents...' : 'दस्तावेज़ अपलोड हो रहे हैं...');
@@ -205,8 +216,6 @@ export function EnhancedKYCPageWithLanguage({ onNavigate }) {
         if (kycData.licenseBack) await uploadLicenseBack(kycData.licenseBack);
         if (kycData.photo) await uploadSelfie(kycData.photo);
 
-        toast.info(language === 'en' ? 'Submitting KYC details...' : 'केवाईसी विवरण जमा हो रहे हैं...');
-        
         // Submit KYC details to backend
         const response = await submitKycDetails({
           address: kycData.address,
@@ -216,32 +225,41 @@ export function EnhancedKYCPageWithLanguage({ onNavigate }) {
           aadhaarNumber: kycData.aadhaarNumber,
           licenseNumber: kycData.licenseNumber
         });
-
         console.log('KYC submission response:', response);
-
-        // Update local user state to reflect pending status
-        updateUser({
-          kycStatus: "pending",
-          name: kycData.fullName,
-          email: kycData.email,
-          phone: kycData.phone,
-        });
-
-        // Show success message
+        // Fetch latest KYC status from backend and update user state
+        try {
+          const latestStatus = await getKycStatus();
+          updateUser({
+            kycStatus: latestStatus?.kycStatus || "pending",
+            name: kycData.fullName,
+            email: kycData.email,
+            phone: kycData.phone,
+          });
+        } catch (err) {
+          updateUser({
+            kycStatus: "pending",
+            name: kycData.fullName,
+            email: kycData.email,
+            phone: kycData.phone,
+          });
+        }
         toast.success(t.kycSubmitted);
-        
-        // Force a small delay to ensure state updates propagate
         await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Don't navigate away - the component will re-render with pending status
         setShowPDFPreview(true);
-      }
-      catch (err) {
+      } catch (err) {
         console.error('KYC submission failed:', err);
-        const errorMsg = err.response?.data?.error || err.message || 'Unknown error';
-        toast.error(language === 'en' ? `KYC submission failed: ${errorMsg}` : `केवाईसी जमा विफल: ${errorMsg}`);
-      }
-      finally {
+        let errorMsg = err.response?.data?.error || err.message || 'Unknown error';
+        if (err.response?.status === 401) {
+          toast.error(language === 'en' ? 'Session expired. Please login again.' : 'सत्र समाप्त हो गया। कृपया फिर से लॉगिन करें।');
+        } else if (err.response?.status === 400) {
+          toast.error(language === 'en' ? `Validation error: ${errorMsg}` : `मान्यकरण त्रुटि: ${errorMsg}`);
+        } else if (err.response?.status === 500) {
+          toast.error(language === 'en' ? 'Server error. Please try again later.' : 'सर्वर त्रुटि। कृपया बाद में पुनः प्रयास करें।');
+        } else {
+          toast.error(language === 'en' ? `KYC submission failed: ${errorMsg}` : `केवाईसी जमा विफल: ${errorMsg}`);
+        }
+        // Stay on KYC page, do not redirect
+      } finally {
         setIsSubmitting(false);
       }
     };
@@ -496,43 +514,112 @@ Noida Sector 112 | hello@kwick.in
     };
     // If user is not logged in
     if (!user) {
-        return (<div className="min-h-screen bg-gray-50">
-        <UserDashboardSidebar currentPage="kyc" onNavigate={onNavigate}/>
-        <div className="ml-[var(--user-sidebar-width,280px)] transition-all p-6 max-w-4xl mx-auto">
-          <Card>
-            <CardContent className="p-8 text-center">
-              <h2 className="text-2xl mb-4">{t.pleaseLogin}</h2>
-              <p className="text-muted-foreground mb-6">{t.pleaseLoginDesc}</p>
-              <Button onClick={() => onNavigate("home")}>{t.goHome}</Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>);
+        return (
+          <div className="min-h-screen bg-gray-50">
+            <UserDashboardSidebar currentPage="kyc" onNavigate={onNavigate}/>
+            <div className="ml-[var(--user-sidebar-width,280px)] transition-all p-6 max-w-4xl mx-auto">
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <h2 className="text-2xl mb-4">{t.pleaseLogin}</h2>
+                  <p className="text-muted-foreground mb-6">{t.pleaseLoginDesc}</p>
+                  <Button onClick={() => onNavigate("home")}>{t.goHome}</Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        );
     }
     // If KYC already submitted - Show PDF Preview
     if (user?.kycStatus === "approved" || user?.kycStatus === "pending" || user?.kycStatus === "rejected") {
-        return (<div className="min-h-screen bg-gray-50">
-        <UserDashboardSidebar currentPage="kyc" onNavigate={onNavigate}/>
-        <div className="ml-[var(--user-sidebar-width,280px)] transition-all p-6 pt-24 max-w-4xl mx-auto">
-          {/* Language Toggle */}
-          <div className="flex justify-end mb-4">
-            <Button variant="outline" size="sm" onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')} className="gap-2">
-              <Globe className="w-4 h-4"/>
-              {language === 'en' ? 'हिंदी' : 'English'}
-            </Button>
-          </div>
-
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <Card className="border-2">
-              <CardContent className="p-8 text-center">
-                {user?.kycStatus === "approved" ? (<>
-                    <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
-                      <CheckCircle className="w-10 h-10 text-green-600"/>
-                    </div>
-                    <h2 className="text-3xl mb-4">{t.kycVerified}</h2>
-                    <p className="text-muted-foreground mb-8">{t.kycVerifiedDesc}</p>
-                    <div className="flex gap-4 justify-center">
-                      {!showPDFPreview ? (<>
+        return (
+          <div className="min-h-screen bg-gray-50">
+            <UserDashboardSidebar currentPage="kyc" onNavigate={onNavigate}/>
+            <div className="ml-[var(--user-sidebar-width,280px)] transition-all p-6 pt-24 max-w-4xl mx-auto">
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                <Card className="border-2">
+                  <CardContent className="p-8 text-center">
+                    {user?.kycStatus === "approved" ? (
+                      <>
+                        <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
+                          <CheckCircle className="w-10 h-10 text-green-600"/>
+                        </div>
+                        <h2 className="text-3xl mb-4">{t.kycVerified}</h2>
+                        <p className="text-muted-foreground mb-8">{t.kycVerifiedDesc}</p>
+                        <div className="flex gap-4 justify-center">
+                          {!showPDFPreview ? (
+                            <>
+                              <Button onClick={viewKYCForm} variant="outline">
+                                <Eye className="w-4 h-4 mr-2"/>
+                                {t.view}
+                              </Button>
+                              <Button onClick={downloadKYCForm} variant="outline">
+                                <Download className="w-4 h-4 mr-2"/>
+                                {t.download}
+                              </Button>
+                            </>
+                          ) : (
+                            <Button onClick={() => setShowPDFPreview(false)} variant="outline">
+                              <ArrowLeft className="w-4 h-4 mr-2"/>
+                              {t.back}
+                            </Button>
+                          )}
+                          <Button onClick={() => onNavigate("rent")} className="bg-primary">
+                            {t.rentNow}
+                          </Button>
+                        </div>
+                        {/* PDF Preview */}
+                        {showPDFPreview && (
+                          <div className="mt-8 text-left bg-gray-50 p-6 rounded-lg">
+                            <h3 className="text-xl mb-4 text-center">KWICK EV RENTAL - KYC FORM</h3>
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <p className="text-sm text-gray-600">{t.fullName}</p>
+                                  <p className="font-medium">{kycData.fullName || user.name}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-gray-600">{t.email}</p>
+                                  <p className="font-medium">{kycData.email || user.email}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-gray-600">{t.phone}</p>
+                                  <p className="font-medium">{kycData.phone || user.phone}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-gray-600">{t.city}</p>
+                                  <p className="font-medium">{kycData.city || "Noida"}</p>
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-600">{t.streetAddress}</p>
+                                <p className="font-medium">{kycData.address || "Sector 112, Noida"}</p>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <p className="text-sm text-gray-600">{t.aadhaarNumber}</p>
+                                  <p className="font-medium">{kycData.aadhaarNumber || "XXXX XXXX 1234"}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-gray-600">{t.licenseNumber}</p>
+                                  <p className="font-medium">{kycData.licenseNumber || "DL-XX-XXXXX"}</p>
+                                </div>
+                              </div>
+                              <div className="pt-4 border-t">
+                                <p className="text-sm text-gray-600">Status</p>
+                                <Badge className="bg-green-500 mt-1">{user.kycStatus}</Badge>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : user?.kycStatus === "pending" ? (
+                      <>
+                        <div className="w-20 h-20 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-6">
+                          <Clock className="w-10 h-10 text-yellow-600"/>
+                        </div>
+                        <h2 className="text-3xl mb-4">{t.kycUnderReview}</h2>
+                        <p className="text-muted-foreground mb-8">{t.kycUnderReviewDesc}</p>
+                        <div className="flex gap-4 justify-center">
                           <Button onClick={viewKYCForm} variant="outline">
                             <Eye className="w-4 h-4 mr-2"/>
                             {t.view}
@@ -541,86 +628,24 @@ Noida Sector 112 | hello@kwick.in
                             <Download className="w-4 h-4 mr-2"/>
                             {t.download}
                           </Button>
-                        </>) : (<Button onClick={() => setShowPDFPreview(false)} variant="outline">
-                          <ArrowLeft className="w-4 h-4 mr-2"/>
-                          {t.back}
-                        </Button>)}
-                      <Button onClick={() => onNavigate("rent")} className="bg-primary">
-                        {t.rentNow}
-                      </Button>
-                    </div>
-                    
-                    {/* PDF Preview */}
-                    {showPDFPreview && (<div className="mt-8 text-left bg-gray-50 p-6 rounded-lg">
-                        <h3 className="text-xl mb-4 text-center">KWICK EV RENTAL - KYC FORM</h3>
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-gray-600">{t.fullName}</p>
-                              <p className="font-medium">{kycData.fullName || user.name}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-600">{t.email}</p>
-                              <p className="font-medium">{kycData.email || user.email}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-600">{t.phone}</p>
-                              <p className="font-medium">{kycData.phone || user.phone}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-600">{t.city}</p>
-                              <p className="font-medium">{kycData.city || "Noida"}</p>
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600">{t.streetAddress}</p>
-                            <p className="font-medium">{kycData.address || "Sector 112, Noida"}</p>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-gray-600">{t.aadhaarNumber}</p>
-                              <p className="font-medium">{kycData.aadhaarNumber || "XXXX XXXX 1234"}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-600">{t.licenseNumber}</p>
-                              <p className="font-medium">{kycData.licenseNumber || "DL-XX-XXXXX"}</p>
-                            </div>
-                          </div>
-                          <div className="pt-4 border-t">
-                            <p className="text-sm text-gray-600">Status</p>
-                            <Badge className="bg-green-500 mt-1">{user.kycStatus}</Badge>
-                          </div>
                         </div>
-                      </div>)}
-                  </>) : user?.kycStatus === "pending" ? (<>
-                    <div className="w-20 h-20 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-6">
-                      <Clock className="w-10 h-10 text-yellow-600"/>
-                    </div>
-                    <h2 className="text-3xl mb-4">{t.kycUnderReview}</h2>
-                    <p className="text-muted-foreground mb-8">{t.kycUnderReviewDesc}</p>
-                    <div className="flex gap-4 justify-center">
-                      <Button onClick={viewKYCForm} variant="outline">
-                        <Eye className="w-4 h-4 mr-2"/>
-                        {t.view}
-                      </Button>
-                      <Button onClick={downloadKYCForm} variant="outline">
-                        <Download className="w-4 h-4 mr-2"/>
-                        {t.download}
-                      </Button>
-                    </div>
-                  </>) : (<>
-                    <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6">
-                      <XCircle className="w-10 h-10 text-red-600"/>
-                    </div>
-                    <h2 className="text-3xl mb-4">{t.kycRejected}</h2>
-                    <p className="text-muted-foreground mb-8">{t.kycRejectedDesc}</p>
-                    <Button onClick={() => updateUser({ kycStatus: "incomplete" })}>{t.resubmit}</Button>
-                  </>)}
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      </div>);
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6">
+                          <XCircle className="w-10 h-10 text-red-600"/>
+                        </div>
+                        <h2 className="text-3xl mb-4">{t.kycRejected}</h2>
+                        <p className="text-muted-foreground mb-8">{t.kycRejectedDesc}</p>
+                        <Button onClick={() => updateUser({ kycStatus: "incomplete" })}>{t.resubmit}</Button>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+          </div>
+        );
     }
     // KYC Form
     return (<div className="min-h-screen bg-gray-50">
@@ -701,3 +726,5 @@ Noida Sector 112 | hello@kwick.in
       </div>
     </div>);
 }
+
+export default EnhancedKYCPageWithLanguage;

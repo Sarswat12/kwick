@@ -24,6 +24,7 @@ const AdminKycDashboard = () => {
     const [detailsModal, setDetailsModal] = useState(false);
     const [pdfModal, setPdfModal] = useState(false);
     const [pdfUrl, setPdfUrl] = useState('');
+    // Always default to 'pending' for admin review
     const [statusFilter, setStatusFilter] = useState('pending');
     const [rejectionReason, setRejectionReason] = useState('');
     const [submitting, setSubmitting] = useState(false);

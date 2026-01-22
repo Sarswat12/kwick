@@ -48,33 +48,44 @@ api.interceptors.response.use(
       isRefreshing = true;
       try {
         const refreshToken = localStorage.getItem('refreshToken');
+        
+        // If no refresh token, clear everything and fail
+        if (!refreshToken) {
+          console.warn('No refresh token available, clearing auth data');
+          localStorage.removeItem('kwick_token');
+          localStorage.removeItem('kwick_user');
+          localStorage.removeItem('accessToken');
+          processQueue(new Error('No refresh token'), null);
+          return Promise.reject(err);
+        }
+        
         const resp = await axios.post(`${baseURL}/auth/refresh`, { refreshToken }, { withCredentials: true });
         const token = resp.data?.body?.token;
         const newRefresh = resp.data?.body?.refreshToken;
-        if (token) localStorage.setItem('kwick_token', token);
+        
+        if (token) {
+          localStorage.setItem('kwick_token', token);
+          localStorage.setItem('accessToken', token);
+        }
         if (newRefresh) localStorage.setItem('refreshToken', newRefresh);
+        
         api.defaults.headers.common.Authorization = `Bearer ${token}`;
         processQueue(null, token);
         return api(originalRequest);
       }
       catch (refreshErr) {
-        processQueue(refreshErr, null);
+        console.error('Token refresh failed:', refreshErr);
+        // Clear all auth data on refresh failure
         localStorage.removeItem('kwick_token');
         localStorage.removeItem('refreshToken');
-        window.location.href = '/';
+        localStorage.removeItem('kwick_user');
+        localStorage.removeItem('accessToken');
+        processQueue(refreshErr, null);
         return Promise.reject(refreshErr);
       }
       finally {
         isRefreshing = false;
       }
-    }
-
-    // Forbidden: do not retry; redirect to login/admin and surface error
-    if (status === 403) {
-      // optional: clear stale tokens to force re-auth
-      localStorage.removeItem('kwick_token');
-      // do not clear refresh so user can re-login if still valid
-      return Promise.reject(err);
     }
 
     return Promise.reject(err);
