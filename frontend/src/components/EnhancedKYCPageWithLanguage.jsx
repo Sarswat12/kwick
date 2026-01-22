@@ -529,8 +529,9 @@ Noida Sector 112 | hello@kwick.in
           </div>
         );
     }
-    // If KYC already submitted - Show PDF Preview
-    if (user?.kycStatus === "approved" || user?.kycStatus === "pending" || user?.kycStatus === "rejected") {
+
+    // Only show KYC form if status is 'incomplete' or not set
+    if (user?.kycStatus === "approved" || user?.kycStatus === "pending") {
         return (
           <div className="min-h-screen bg-gray-50">
             <UserDashboardSidebar currentPage="kyc" onNavigate={onNavigate}/>
@@ -563,9 +564,6 @@ Noida Sector 112 | hello@kwick.in
                               {t.back}
                             </Button>
                           )}
-                          <Button onClick={() => onNavigate("rent")} className="bg-primary">
-                            {t.rentNow}
-                          </Button>
                         </div>
                         {/* PDF Preview */}
                         {showPDFPreview && (
@@ -612,7 +610,7 @@ Noida Sector 112 | hello@kwick.in
                           </div>
                         )}
                       </>
-                    ) : user?.kycStatus === "pending" ? (
+                    ) : (
                       <>
                         <div className="w-20 h-20 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-6">
                           <Clock className="w-10 h-10 text-yellow-600"/>
@@ -630,15 +628,6 @@ Noida Sector 112 | hello@kwick.in
                           </Button>
                         </div>
                       </>
-                    ) : (
-                      <>
-                        <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6">
-                          <XCircle className="w-10 h-10 text-red-600"/>
-                        </div>
-                        <h2 className="text-3xl mb-4">{t.kycRejected}</h2>
-                        <p className="text-muted-foreground mb-8">{t.kycRejectedDesc}</p>
-                        <Button onClick={() => updateUser({ kycStatus: "incomplete" })}>{t.resubmit}</Button>
-                      </>
                     )}
                   </CardContent>
                 </Card>
@@ -646,6 +635,13 @@ Noida Sector 112 | hello@kwick.in
             </div>
           </div>
         );
+    }
+
+    // If rejected, allow resubmission
+    if (user?.kycStatus === "rejected") {
+        // Optionally, you can show a rejection reason if available
+        // For now, just show the form again with a rejection message
+        toast.info(t.kycRejectedDesc);
     }
     // KYC Form
     return (<div className="min-h-screen bg-gray-50">
