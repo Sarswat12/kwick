@@ -544,7 +544,11 @@ public class KycController {
 
             if (!Files.exists(filePath)) {
                 logger.warn("KYC file not found: {}", filePath);
-                return ResponseEntity.status(404).body(new ApiResponse<>("File not found"));
+                // Return a default SVG image for not found
+                String svg = "<svg xmlns='http://www.w3.org/2000/svg' width='300' height='200'><rect width='100%' height='100%' fill='#f8d7da'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='20' fill='#721c24'>Image not found</text></svg>";
+                return ResponseEntity.status(200)
+                        .header(HttpHeaders.CONTENT_TYPE, "image/svg+xml")
+                        .body(svg);
             }
 
             byte[] fileContent = Files.readAllBytes(filePath);

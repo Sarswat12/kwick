@@ -16,8 +16,13 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
         // Serve static assets (CSS, JS, images, etc.)
         registry.addResourceHandler("/**")
-                .addResourceLocations("classpath:/static/", "classpath:/public/")
-                .resourceChain(true);
+            .addResourceLocations("classpath:/static/", "classpath:/public/")
+            .resourceChain(true);
+
+        // Expose backend-uploads directory for KYC and other uploaded files
+        String uploadsPath = System.getProperty("user.dir") + "/backend-uploads/";
+        registry.addResourceHandler("/backend-uploads/**")
+            .addResourceLocations("file:" + uploadsPath);
     }
 
 
