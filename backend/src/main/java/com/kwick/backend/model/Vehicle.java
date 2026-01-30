@@ -2,21 +2,44 @@ package com.kwick.backend.model;
 
 import jakarta.persistence.*;
 
+
+
+
 @Entity
-@Table(name = "VEHICLES")
+@Table(
+    name = "vehicles",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_vehicles_registration_number", columnNames = {"registration_number"})
+    }
+)
 public class Vehicle {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, length = 100)
     private String name;
+
+    @Column(length = 50)
     private String type;
+
+    @Column(length = 50)
     private String brand;
+
+    @Column(length = 50)
     private String model;
+
+    @Column(name = "registration_number", length = 191)
     private String registrationNumber;
+
+    @Column(name = "daily_rate")
     private Double dailyRate;
+
+    @Column(name = "owner_id")
     private Long ownerId;
+
+    @Column(nullable = false)
     private Boolean available = true;
 
     // getters/setters

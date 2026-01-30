@@ -32,11 +32,12 @@ public class AuthService {
     }
 
     public Map<String, Object> signup(String email, String password, String name) {
-        if (userRepository.findByEmail(email).isPresent()) {
+        String cleanEmail = email == null ? null : email.trim().toLowerCase();
+        if (userRepository.findByEmail(cleanEmail).isPresent()) {
             throw new IllegalArgumentException("Email already exists");
         }
         User u = new User();
-        u.setEmail(email);
+        u.setEmail(cleanEmail);
         u.setPasswordHash(passwordEncoder.encode(password));
         u.setName(name);
         userRepository.save(u);
@@ -52,15 +53,25 @@ public class AuthService {
         refreshTokenRepository.save(rt);
 
         return Map.of(
-                "user", Map.of("userId", u.getId(), "email", u.getEmail(), "name", u.getName()),
-                "token", token,
-                "refreshToken", refreshToken);
+            "user", Map.of(
+                "userId", u.getId(),
+                "email", u.getEmail(),
+                "name", u.getName(),
+                "role", u.getRole(),
+                "kycStatus", u.getKycStatus()
+            ),
+            "token", token,
+            "refreshToken", refreshToken);
     }
 
     public Map<String, Object> login(String email, String password) {
-        User u = userRepository.findByEmail(email)
+        String cleanEmail = email == null ? null : email.trim().toLowerCase();
+        System.out.println("[DEBUG] Login attempt for email: '" + cleanEmail + "'");
+        User u = userRepository.findByEmail(cleanEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
-        if (!passwordEncoder.matches(password, u.getPasswordHash())) {
+        boolean passwordMatch = passwordEncoder.matches(password, u.getPasswordHash());
+        System.out.println("[DEBUG] Password match: " + passwordMatch);
+        if (!passwordMatch) {
             throw new IllegalArgumentException("Invalid credentials");
         }
 
@@ -75,10 +86,16 @@ public class AuthService {
         refreshTokenRepository.save(rt);
 
         return Map.of(
-                "user",
-                Map.of("userId", u.getId(), "email", u.getEmail(), "name", u.getName(), "kycStatus", u.getKycStatus()),
-                "token", token,
-                "refreshToken", refreshToken);
+            "user",
+            Map.of(
+                "userId", u.getId(),
+                "email", u.getEmail(),
+                "name", u.getName(),
+                "role", u.getRole(),
+                "kycStatus", u.getKycStatus()
+            ),
+            "token", token,
+            "refreshToken", refreshToken);
     }
 
     public Map<String, Object> refresh(String refreshToken) {

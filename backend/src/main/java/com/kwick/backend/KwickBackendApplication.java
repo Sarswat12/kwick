@@ -10,7 +10,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
 @SpringBootApplication
+@EntityScan(basePackages = {"com.kwick.backend.model"})
+@EnableJpaRepositories(basePackages = {"com.kwick.backend.repository"})
 public class KwickBackendApplication {
 
 	private static final Logger logger = LoggerFactory.getLogger(KwickBackendApplication.class);

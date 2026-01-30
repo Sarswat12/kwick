@@ -3,45 +3,46 @@ package com.kwick.backend.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import org.springframework.lang.NonNull;
+
+
+
 
 @Entity
+@Table(name = "callback_request")
 public class CallbackRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NonNull
+    @Column(nullable = false, length = 100)
     private String name = "";
-    @NonNull
+    @Column(nullable = false, length = 100)
     private String email = "";
-    @NonNull
+    @Column(nullable = false, length = 20)
     private String phone = "";
-    @NonNull
+    @Column(nullable = false, length = 100)
     private String location = "";
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     // Status: "new" or "handled"
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private String status = "new";
 
+    @Column(name = "handled_at")
     private LocalDateTime handledAt;
 
     // Getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    @NonNull
     public String getName() { return name; }
-    public void setName(@NonNull String name) { this.name = name; }
-    @NonNull
+    public void setName(String name) { this.name = name == null ? "" : name; }
     public String getEmail() { return email; }
-    public void setEmail(@NonNull String email) { this.email = email; }
-    @NonNull
+    public void setEmail(String email) { this.email = email == null ? "" : email; }
     public String getPhone() { return phone; }
-    public void setPhone(@NonNull String phone) { this.phone = phone; }
-    @NonNull
+    public void setPhone(String phone) { this.phone = phone == null ? "" : phone; }
     public String getLocation() { return location; }
-    public void setLocation(@NonNull String location) { this.location = location; }
+    public void setLocation(String location) { this.location = location == null ? "" : location; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 

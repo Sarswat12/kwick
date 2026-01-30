@@ -11,15 +11,27 @@ import { motion } from 'motion/react';
 import apiClient from '../../utils/apiClient';
 
 export const UserManagementPanel = ({ onNavigate }) => {
-    const [users, setUsers] = useState([]);
-    const [selectedUser, setSelectedUser] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState('all');
-    const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '' });
 
     useEffect(() => {
-        fetchUsers();
+      fetchUsers();
     }, []);
+
+    useEffect(() => {
+      if (selectedUser) {
+        setEditForm({
+          name: selectedUser.name || '',
+          email: selectedUser.email || '',
+          phone: selectedUser.phone || '',
+        });
+      }
+    }, [selectedUser]);
 
     const fetchUsers = async () => {
         try {
@@ -146,10 +158,10 @@ export const UserManagementPanel = ({ onNavigate }) => {
                       <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
                         <User className="w-5 h-5 text-red-500"/>
                       </div>
-                      <div>
-                        <p>{user.name}</p>
-                        <p className="text-sm text-gray-500">{user.email}</p>
-                        <p className="text-xs text-gray-400">{user.phone}</p>
+                      <div className="flex flex-col min-w-0 w-full">
+                        <p className="truncate" title={user.name}>{user.name}</p>
+                        <p className="text-sm text-gray-500 break-words w-full" style={{wordBreak:'break-word'}} title={user.email}>{user.email}</p>
+                        <p className="text-xs text-gray-400 break-words w-full" style={{wordBreak:'break-word'}} title={user.phone}>{user.phone}</p>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
@@ -182,27 +194,69 @@ export const UserManagementPanel = ({ onNavigate }) => {
                     <User className="w-8 h-8 text-red-500"/>
                   </div>
                   <div>
-                    <h3 className="text-xl">{selectedUser?.name || 'N/A'}</h3>
-                    <p className="text-gray-500">User ID: {selectedUser?.id || 'N/A'}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant={selectedUser?.status === 'active' ? 'default' : 'secondary'} className={selectedUser?.status === 'active' ? 'bg-green-500' : ''}>
-                        {selectedUser?.status || 'unknown'}
-                      </Badge>
-                      <Badge variant="outline" className="border-yellow-500 text-yellow-500">
-                        {selectedUser?.kycStatus || 'pending'}
-                      </Badge>
-                      <Badge variant="outline" className={`${selectedUser?.tier === 'gold' ? 'border-yellow-500 text-yellow-500' : selectedUser?.tier === 'platinum' ? 'border-purple-500 text-purple-500' : 'border-gray-500 text-gray-500'}`}>
-                        {selectedUser?.tier || 'standard'}
-                      </Badge>
-                    </div>
+                    {!editMode ? (
+                      <>
+                        <h3 className="text-xl">{selectedUser?.name || 'N/A'}</h3>
+                        <p className="text-gray-500">User ID: {selectedUser?.id || 'N/A'}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant={selectedUser?.status === 'active' ? 'default' : 'secondary'} className={selectedUser?.status === 'active' ? 'bg-green-500' : ''}>
+                            {selectedUser?.status || 'unknown'}
+                          </Badge>
+                          <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+                            {selectedUser?.kycStatus || 'pending'}
+                          </Badge>
+                          <Badge variant="outline" className={`${selectedUser?.tier === 'gold' ? 'border-yellow-500 text-yellow-500' : selectedUser?.tier === 'platinum' ? 'border-purple-500 text-purple-500' : 'border-gray-500 text-gray-500'}`}>
+                            {selectedUser?.tier || 'standard'}
+                          </Badge>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <input className="border rounded px-2 py-1 mb-1 w-full" value={editForm.name} onChange={e => setEditForm(f => ({...f, name: e.target.value}))} />
+                        <p className="text-gray-500">User ID: {selectedUser?.id || 'N/A'}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant={selectedUser?.status === 'active' ? 'default' : 'secondary'} className={selectedUser?.status === 'active' ? 'bg-green-500' : ''}>
+                            {selectedUser?.status || 'unknown'}
+                          </Badge>
+                          <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+                            {selectedUser?.kycStatus || 'pending'}
+                          </Badge>
+                          <Badge variant="outline" className={`${selectedUser?.tier === 'gold' ? 'border-yellow-500 text-yellow-500' : selectedUser?.tier === 'platinum' ? 'border-purple-500 text-purple-500' : 'border-gray-500 text-gray-500'}`}>
+                            {selectedUser?.tier || 'standard'}
+                          </Badge>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    <FileText className="w-4 h-4 mr-2"/>
-                    Edit User
-                  </Button>
-                  <Select defaultValue="active">
+                  {!editMode ? (
+                    <Button variant="outline" size="sm" onClick={() => setEditMode(true)}>
+                      <FileText className="w-4 h-4 mr-2"/>
+                      Edit User
+                    </Button>
+                  ) : (
+                    <>
+                      <Button variant="outline" size="sm" onClick={async () => {
+                        try {
+                          await apiClient.patch(`/admin/users/${selectedUser.id}`, editForm);
+                          setUsers(users => users.map(u => u.id === selectedUser.id ? {...u, ...editForm} : u));
+                          setSelectedUser(u => u ? {...u, ...editForm} : u);
+                          setEditMode(false);
+                        } catch (e) { alert('Failed to update user'); }
+                      }}>
+                        Save
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => { setEditMode(false); setEditForm({ name: selectedUser.name, email: selectedUser.email, phone: selectedUser.phone }); }}>Cancel</Button>
+                    </>
+                  )}
+                  <Select defaultValue={selectedUser?.status || 'active'} onValueChange={async (val) => {
+                    try {
+                      await apiClient.patch(`/admin/users/${selectedUser.id}`, { status: val });
+                      setUsers(users => users.map(u => u.id === selectedUser.id ? {...u, status: val} : u));
+                      setSelectedUser(u => u ? {...u, status: val} : u);
+                    } catch (e) { alert('Failed to update status'); }
+                  }}>
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
@@ -215,22 +269,26 @@ export const UserManagementPanel = ({ onNavigate }) => {
                 </div>
               </div>
 
-              {/* Contact Info */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div>
+              {/* Contact Info - stack email/phone vertically */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="flex flex-col">
                   <p className="text-sm text-gray-500">Email</p>
-                  <p>{selectedUser?.email || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Phone</p>
-                  <p>{selectedUser?.phone || 'N/A'}</p>
+                  {!editMode ? (
+                    <p className="break-words" style={{wordBreak:'break-word'}}>{selectedUser?.email || 'N/A'}</p>
+                  ) : (
+                    <input className="border rounded px-2 py-1 mb-1 w-full" value={editForm.email} onChange={e => setEditForm(f => ({...f, email: e.target.value}))} />
+                  )}
+                  <p className="text-sm text-gray-500 mt-2">Phone</p>
+                  {!editMode ? (
+                    <p className="break-words" style={{wordBreak:'break-word'}}>{selectedUser?.phone || 'N/A'}</p>
+                  ) : (
+                    <input className="border rounded px-2 py-1 w-full" value={editForm.phone} onChange={e => setEditForm(f => ({...f, phone: e.target.value}))} />
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Joined</p>
                   <p>{selectedUser?.joined || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Last Active</p>
+                  <p className="text-sm text-gray-500 mt-2">Last Active</p>
                   <p>{selectedUser?.lastActive || 'N/A'}</p>
                 </div>
               </div>

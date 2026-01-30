@@ -20,15 +20,13 @@ export function AdminDashboard() {
     setLoading(true);
     setError(null);
     Promise.all([
-      fetchAdminStats(),
-      fetchAdminKyc(0, 5),
-      fetchAllUsers(0, 5),
+      fetchAllUsers(0, 1000),
+      fetchAdminKyc(0, 1000),
       fetchAllRentals(0, 5),
       fetchAdminPayments(0, 5)
-    ]).then(([stats, kyc, users, rentals, payments]) => {
-      setStats(stats);
-      setKyc(kyc.content || kyc || []);
-      setUsers(users.content || users || []);
+    ]).then(([users, kyc, rentals, payments]) => {
+      setUsers(users || []);
+      setKyc(kyc || []);
       setRentals(rentals.content || rentals || []);
       setPayments(payments.content || payments || []);
     }).catch(() => {
@@ -74,8 +72,7 @@ export function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-muted-foreground mb-1">Total Users</p>
-                  <h3 className="text-foreground">2,847</h3>
-                  <p className="text-sm text-green-600 mt-1">+12% this month</p>
+                  <h3 className="text-foreground">{users.length}</h3>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
                   <Users className="w-6 h-6 text-blue-600"/>
@@ -90,12 +87,11 @@ export function AdminDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-muted-foreground mb-1">Active Rentals</p>
-                  <h3 className="text-foreground">1,234</h3>
-                  <p className="text-sm text-green-600 mt-1">87% utilization</p>
+                  <p className="text-muted-foreground mb-1">KYC Completed</p>
+                  <h3 className="text-foreground">{users.filter(u => u.kycStatus === 'approved').length}</h3>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center">
-                  <Car className="w-6 h-6 text-green-600"/>
+                  <FileCheck className="w-6 h-6 text-green-600"/>
                 </div>
               </div>
             </CardContent>
@@ -108,8 +104,7 @@ export function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-muted-foreground mb-1">Pending KYC</p>
-                  <h3 className="text-foreground">47</h3>
-                  <p className="text-sm text-yellow-600 mt-1">Needs review</p>
+                  <h3 className="text-foreground">{users.filter(u => u.kycStatus !== 'approved').length}</h3>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-yellow-500/10 flex items-center justify-center">
                   <FileCheck className="w-6 h-6 text-yellow-600"/>
@@ -125,8 +120,7 @@ export function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-muted-foreground mb-1">Revenue (MTD)</p>
-                  <h3 className="text-foreground">₹8.4L</h3>
-                  <p className="text-sm text-green-600 mt-1">+24% vs last month</p>
+                  <h3 className="text-foreground">-</h3>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
                   <TrendingUp className="w-6 h-6 text-purple-600"/>

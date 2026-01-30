@@ -11,69 +11,57 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useAuth } from "../contexts/AuthContext";
 import { UserDashboardSidebar } from "./UserDashboardSidebar";
 const PLANS = [
-    {
-        id: "daily",
-        name: "Daily Rental",
-        price: 99,
-        originalPrice: 400,
-        duration: "per day",
-        earning: "₹600-1,200/day",
-        features: [
-            "KWICK premium electric scooter",
-            "Unlimited battery swaps",
-            "Full insurance coverage",
-            "24/7 customer support",
-            "Mobile app with GPS tracking",
-            "Free home delivery & pickup"
-        ]
-    },
-    {
-        id: "weekly",
-        name: "Weekly Rental",
-        price: 1750,
-        originalPrice: 2100,
-        duration: "per week",
-        earning: "₹4,200-8,400/week",
-        popular: true,
-        savings: "Save ₹350/week",
-        features: [
-            "KWICK premium electric scooter",
-            "Unlimited battery swaps",
-            "Priority customer support",
-            "Full insurance + roadside assistance",
-            "Advanced mobile app features",
-            "Free delivery & maintenance",
-            "Performance analytics dashboard",
-            "Earning optimization tips"
-        ]
-    },
-    {
-        id: "monthly",
-        name: "Monthly Rental",
-        price: 7500,
-        originalPrice: 9000,
-        duration: "per month",
-        earning: "₹18,000-36,000/month",
-        bestValue: true,
-        savings: "Save ₹1,500/month",
-        features: [
-            "KWICK premium electric scooter",
-            "Unlimited battery swaps",
-            "VIP priority support",
-            "Comprehensive insurance package",
-            "AI-powered earning optimization",
-            "Free delivery, maintenance & repairs",
-            "Dedicated account manager",
-            "Performance bonus eligibility",
-            "Partner referral rewards",
-            "Multi-city travel support"
-        ]
-    }
+  {
+    id: "daily",
+    name: "Daily",
+    basePrice: 99,
+    description: "Old Vehicle + without battery",
+    features: [
+      "Daily km limit: 150 km",
+      "Helmet: Yes",
+      "T-shirt: Yes",
+      "Insurance: Basic",
+      "Priority support: No",
+      "Maintenance: Included",
+      "Roadside assistance: No"
+    ]
+  },
+  {
+    id: "dailyplus",
+    name: "Daily Plus",
+    basePrice: 180,
+    description: "Old Vehicle + with battery",
+    features: [
+      "Daily km limit: 200 km",
+      "Helmet: Yes",
+      "T-shirt: Yes",
+      "Insurance: Standard",
+      "Priority support: No",
+      "Maintenance: Included",
+      "Roadside assistance: Yes"
+    ]
+  },
+  {
+    id: "dailypro",
+    name: "Daily Pro",
+    basePrice: 250,
+    description: "New Vehicle + with battery",
+    features: [
+      "Daily km limit: Unlimited",
+      "Helmet: Yes",
+      "T-shirt: Yes",
+      "Insurance: Comprehensive",
+      "Priority support: Yes",
+      "Maintenance: Included",
+      "Roadside assistance: Yes"
+    ]
+  }
 ];
 export function EnhancedRentVehiclePage({ onNavigate }) {
     const { user, updateUser } = useAuth();
     const [step, setStep] = useState(1);
     const [selectedPlan, setSelectedPlan] = useState(null);
+    const [selectedDays, setSelectedDays] = useState({ daily: 1, dailyplus: 1, dailypro: 1 });
     const [paymentProof, setPaymentProof] = useState(null);
     const [utrNumber, setUtrNumber] = useState("");
     const handleBack = () => {
@@ -162,40 +150,46 @@ export function EnhancedRentVehiclePage({ onNavigate }) {
         /* Step 1: Choose Plan */
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
             <div className="grid md:grid-cols-3 gap-6">
-              {PLANS.map((plan, index) => (<motion.div key={plan.id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} whileHover={{ y: -10 }}>
-                  <Card className={`h-full border-2 transition-all ${plan.popular ? "border-primary shadow-xl" : "border-border hover:border-primary"}`}>
+              {PLANS.map((plan, index) => (
+                <motion.div key={plan.id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} whileHover={{ y: -10 }}>
+                  <Card className="h-full border-2 transition-all border-border hover:border-primary">
                     <CardHeader>
-                      <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-start justify-between mb-2">
                         <CardTitle>{plan.name}</CardTitle>
-                        {plan.popular && (<Badge className="bg-primary">Most Popular</Badge>)}
-                        {plan.bestValue && (<Badge className="bg-green-600">Best Value</Badge>)}
                       </div>
-                      <div className="mb-4">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-4xl font-bold text-primary">₹{plan.price}</span>
-                          <span className="text-muted-foreground line-through">₹{plan.originalPrice}</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{plan.duration}</p>
-                        {plan.savings && (<p className="text-sm text-green-600 mt-1">{plan.savings}</p>)}
+                      <div className="mb-2 text-sm text-muted-foreground">{plan.description}</div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-3xl font-bold text-primary">₹{plan.basePrice * selectedDays[plan.id]}</span>
+                        <span className="text-muted-foreground">per {selectedDays[plan.id]} day{selectedDays[plan.id] > 1 ? 's' : ''}</span>
                       </div>
-                      <div className="p-3 bg-primary/5 rounded-lg">
-                        <p className="text-sm font-semibold">Earning Potential</p>
-                        <p className="text-lg text-primary">{plan.earning}</p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label htmlFor={`days-${plan.id}`}>Days:</Label>
+                        <select
+                          id={`days-${plan.id}`}
+                          className="border rounded px-2 py-1"
+                          value={selectedDays[plan.id]}
+                          onChange={e => setSelectedDays(sd => ({ ...sd, [plan.id]: Number(e.target.value) }))}
+                        >
+                          {[1, 5, 7].map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3 mb-6">
-                        {plan.features.map((feature, i) => (<div key={i} className="flex items-start gap-2">
+                        {plan.features.map((feature, i) => (
+                          <div key={i} className="flex items-start gap-2">
                             <CheckCircle className="w-4 h-4 text-green-600 shrink-0 mt-0.5"/>
                             <span className="text-sm">{feature}</span>
-                          </div>))}
+                          </div>
+                        ))}
                       </div>
-                      <Button onClick={() => handleSelectPlan(plan)} className={`w-full ${plan.popular ? "bg-primary" : ""}`} variant={plan.popular ? "default" : "outline"}>
-                        Choose {plan.name}
+                      <Button onClick={() => handleSelectPlan(plan)} className="w-full" variant="outline">
+                        Choose {plan.name} ({selectedDays[plan.id]} day{selectedDays[plan.id] > 1 ? 's' : ''})
                       </Button>
                     </CardContent>
                   </Card>
-                </motion.div>))}
+                </motion.div>
+              ))}
             </div>
 
             {/* Info Card */}
@@ -227,11 +221,12 @@ export function EnhancedRentVehiclePage({ onNavigate }) {
                         <div className="flex justify-between items-start">
                           <div>
                             <h4 className="font-semibold">{selectedPlan.name}</h4>
-                            <p className="text-sm text-muted-foreground">KWICK Premium EV Scooter</p>
+                            <p className="text-sm text-muted-foreground">{selectedPlan.description}</p>
+                            <p className="text-xs text-muted-foreground">Days: {selectedPlan.days}</p>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold">₹{selectedPlan.price}</p>
-                            <p className="text-sm text-muted-foreground line-through">₹{selectedPlan.originalPrice}</p>
+                            <p className="font-semibold">₹{selectedPlan.totalPrice}</p>
+                            <p className="text-xs text-muted-foreground">₹{selectedPlan.basePrice} × {selectedPlan.days} day(s)</p>
                           </div>
                         </div>
 

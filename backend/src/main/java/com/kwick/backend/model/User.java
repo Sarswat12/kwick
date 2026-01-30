@@ -2,8 +2,22 @@ package com.kwick.backend.model;
 
 import jakarta.persistence.*;
 
+
+
+
+
+
+
+
+
+
 @Entity
-@Table(name = "USERS")
+@Table(
+    name = "users",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_users_email", columnNames = {"email"})
+    }
+)
 public class User {
 
     @Id
@@ -11,21 +25,25 @@ public class User {
     @Column(name = "user_id")
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, length = 191)
     private String email;
 
-    @Column(name = "password_hash", nullable = false)
+    @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
+    @Column(length = 100)
     private String name;
 
+    @Column(length = 20)
     private String phone;
 
-    @Transient
+    @Column(length = 255)
     private String address;
 
+    @Column(nullable = false, length = 20)
     private String role = "user";
 
+    @Column(name = "kyc_status", nullable = false, length = 20)
     private String kycStatus = "incomplete";
 
     // getters and setters

@@ -36,6 +36,16 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<Map<String, Object>>> login(@Valid @RequestBody LoginRequest req) {
         var result = authService.login(req.getEmail(), req.getPassword());
+        System.out.println("[DEBUG] /api/auth/login response: " + result);
+        try {
+            java.nio.file.Files.write(
+                java.nio.file.Paths.get("backend/backend_login_response.log"),
+                ("[DEBUG] /api/auth/login response: " + result + System.lineSeparator()).getBytes(),
+                java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND
+            );
+        } catch (Exception e) {
+            System.err.println("[DEBUG] Failed to write login response log: " + e.getMessage());
+        }
         return ResponseEntity.ok(new ApiResponse<>(result));
     }
 

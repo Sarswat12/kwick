@@ -72,18 +72,20 @@ export const AuthProvider = ({ children }) => {
         catch (e) { }
         // Regular login flow
         const resp = await apiAuth.login({ email, password });
-        if (resp.ok && resp.body) {
+        if (resp.ok && resp.body && resp.body.token && resp.body.user) {
             const userData = resp.body;
             const u = {
                 id: String(userData.user?.userId || userData.user?.user_id || userData.user?.id || ''),
-                name: userData.user?.name || userData.user?.name || '',
-                email: userData.user?.email || userData.user?.email || email,
-                phone: userData.user?.phone || userData.user?.phone || '',
-                role: 'user',
+                name: userData.user?.name || '',
+                email: userData.user?.email || email,
+                phone: userData.user?.phone || '',
+                role: userData.user?.role || 'user',
                 kycStatus: userData.user?.kycStatus || userData.user?.kyc_status || 'incomplete',
             };
             setUser(u);
             localStorage.setItem('kwick_user', JSON.stringify(u));
+            localStorage.setItem('kwick_token', userData.token);
+            if (userData.refreshToken) localStorage.setItem('refreshToken', userData.refreshToken);
         }
         else {
             throw new Error(resp.error || 'Login failed');
@@ -111,53 +113,44 @@ export const AuthProvider = ({ children }) => {
     const adminLogin = async (adminId, password) => {
         const now = new Date().toLocaleTimeString();
         console.log(`[AuthContext] ${now} adminLogin called with ID:`, adminId);
-        
-        // Hardcoded fallback for emergency access
-        if (adminId === 'Shankra@25' && password === 'Shankra@18') {
-            console.log(`[AuthContext] ${now} Using emergency admin credentials`);
-            // Try to login with real backend API first
-            try {
-                const resp = await apiAuth.login({ email: 'admin@kwick.in', password: 'admin123' });
-                if (resp.ok && resp.body) {
-                    const userData = resp.body;
-                    const u = {
-                        id: String(userData.user?.userId || userData.user?.id || '15'),
-                        name: userData.user?.name || 'Admin',
-                        email: userData.user?.email || 'admin@kwick.in',
-                        phone: userData.user?.phone || '+91 9000000000',
-                        role: 'admin',
-                        kycStatus: userData.user?.kycStatus || 'approved',
-                    };
-                    console.log(`[AuthContext] ${now} Backend login successful for admin:`, u);
-                    setUser(u);
-                    setViewMode('admin');
-                    localStorage.setItem('kwick_user', JSON.stringify(u));
-                    localStorage.setItem('kwick_view_mode', 'admin');
-                    return true;
+
+        // Only allow admin login if backend returns a valid token and user with admin role
+        try {
+            const resp = await apiAuth.login({ email: adminId, password });
+            let token, user;
+            if (resp.ok && resp.body) {
+                if (resp.body.token && resp.body.user) {
+                    token = resp.body.token;
+                    user = resp.body.user;
+                } else if (resp.body.body && resp.body.body.token && resp.body.body.user) {
+                    token = resp.body.body.token;
+                    user = resp.body.body.user;
                 }
-            } catch (err) {
-                console.warn(`[AuthContext] ${now} Backend login failed, using offline mode:`, err);
             }
-            
-            // Fallback: offline admin mode (no API access)
-            const adminUser = {
-                id: 'ADM001',
-                name: 'Admin (Offline)',
-                email: 'admin@kwick.in',
-                phone: '+91 9000000000',
-                role: 'admin',
-                kycStatus: 'approved',
-            };
-            console.log(`[AuthContext] ${now} Setting offline admin user:`, adminUser);
-            setUser(adminUser);
-            setViewMode('admin');
-            localStorage.setItem('kwick_user', JSON.stringify(adminUser));
-            localStorage.setItem('kwick_view_mode', 'admin');
-            // Note: without real token, API calls will fail - prompt user to use real admin account
-            return true;
+            if (token && user) {
+                const u = {
+                    id: String(user.userId || user.id || '15'),
+                    name: user.name || 'Admin',
+                    email: user.email || adminId,
+                    phone: user.phone || '+91 9000000000',
+                    role: user.role || 'admin',
+                    kycStatus: user.kycStatus || 'approved',
+                };
+                localStorage.setItem('kwick_token', token);
+                if (resp.body.refreshToken) localStorage.setItem('refreshToken', resp.body.refreshToken);
+                setUser(u);
+                setViewMode('admin');
+                localStorage.setItem('kwick_user', JSON.stringify(u));
+                localStorage.setItem('kwick_view_mode', 'admin');
+                return true;
+            } else {
+                console.warn(`[AuthContext] ${now} Admin login failed, no token or user received.`);
+                return false;
+            }
+        } catch (err) {
+            console.error(`[AuthContext] ${now} Backend admin login error:`, err);
+            return false;
         }
-        console.log(`[AuthContext] ${now} Admin login failed - invalid credentials`);
-        return false;
     };
     const logout = () => {
         console.log('[AuthContext] Logging out, clearing all auth data');
@@ -186,18 +179,18 @@ export const AuthProvider = ({ children }) => {
         }
     };
     return (<AuthContext.Provider value={{
-            user,
-            isAuthenticated: !!user,
-            isAdmin: user?.role === 'admin',
-            viewMode,
-            login,
-            adminLogin,
-            signup,
-            logout,
-            switchToUserView,
-            switchToAdminView,
-            updateUser,
-        }}>
-      {children}
-    </AuthContext.Provider>);
+                        user,
+                        isAuthenticated: !!user && !!localStorage.getItem('kwick_token'),
+                        isAdmin: user?.role === 'admin' && !!localStorage.getItem('kwick_token'),
+                        viewMode,
+                        login,
+                        adminLogin,
+                        signup,
+                        logout,
+                        switchToUserView,
+                        switchToAdminView,
+                        updateUser,
+                }}>
+            {children}
+        </AuthContext.Provider>);
 };

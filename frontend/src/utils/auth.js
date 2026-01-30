@@ -16,21 +16,44 @@ async function normalizeResponse(promise) {
 }
 
 export async function signup(data) {
-    return normalizeResponse(api.post('/auth/signup', data));
+    // Always trim and lowercase email, do not alter password
+    const cleanData = {
+        ...data,
+        email: (data.email || '').trim().toLowerCase(),
+        // password: do not trim or lowercase
+    };
+    return normalizeResponse(api.post('/auth/signup', cleanData));
 }
 
 export async function login(data) {
-    console.log('Login request data:', data);
-    const result = await normalizeResponse(api.post('/auth/login', data));
+    // Always trim and lowercase email, do not alter password
+    const cleanData = {
+        ...data,
+        email: (data.email || '').trim().toLowerCase(),
+        // password: do not trim or lowercase
+    };
+    console.log('Login request data:', cleanData);
+    const result = await normalizeResponse(api.post('/auth/login', cleanData));
     console.log('Login response:', result);
-    if (result.ok && result.body && result.body.body && result.body.body.token) {
-        try {
-            const token = result.body.body.token;
-            const user = result.body.body.user || result.body.body;
-            localStorage.setItem('kwick_token', token);
-            localStorage.setItem('kwick_user', JSON.stringify(user));
+    // Support both direct and wrapped (ApiResponse) responses
+    let token, user, refreshToken;
+    if (result.ok && result.body) {
+        if (result.body.token && result.body.user) {
+            token = result.body.token;
+            user = result.body.user;
+            refreshToken = result.body.refreshToken;
+        } else if (result.body.body && result.body.body.token && result.body.body.user) {
+            token = result.body.body.token;
+            user = result.body.body.user;
+            refreshToken = result.body.body.refreshToken;
         }
-        catch (e) { }
+        if (token && user) {
+            try {
+                localStorage.setItem('kwick_token', token);
+                localStorage.setItem('kwick_user', JSON.stringify(user));
+                if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+            } catch (e) { }
+        }
     }
     return result;
 }

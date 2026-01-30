@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { fetchAllUsers } from '../../utils/adminDashboard';
+import apiClient from '../../utils/apiClient';
 import { Search, Download, Plus, Eye, Check, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -12,38 +14,94 @@ import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { AdminSidebar } from './AdminSidebar';
 import { motion } from 'motion/react';
 
-// Payment data will be fetched from API
-const mockPaymentData = [];
+
 
 export const PaymentManagementPanel = ({ onNavigate }) => {
-    const [selectedUser, setSelectedUser] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [addPaymentOpen, setAddPaymentOpen] = useState(false);
-    const [newPayment, setNewPayment] = useState({
-        userId: '',
-        amount: '',
-        plan: '',
-        method: 'UPI',
-        utr: '',
-        proof: null,
-    });
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [addPaymentOpen, setAddPaymentOpen] = useState(false);
+  const [newPayment, setNewPayment] = useState({
+    userId: '',
+    amount: '',
+    plan: '',
+    method: 'UPI',
+    utr: '',
+    proof: null,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      // Fetch all users (increase size for more users)
+      const data = await fetchAllUsers(0, 100);
+      setUsers(data.items || data || []);
+    } catch (e) {
+      setError('Failed to fetch users');
+    } finally {
+      setLoading(false);
+    }
+  };
     const exportData = (format) => {
-        alert(`Exporting payment data as ${format.toUpperCase()}...`);
+      alert(`Exporting payment data as ${format.toUpperCase()}...`);
     };
-    const handleAddPayment = () => {
+    const handleAddPayment = async () => {
+      if (!newPayment.userId || !newPayment.amount || !newPayment.plan) {
+        alert('Please fill all required fields');
+        return;
+      }
+      try {
+        const formData = new FormData();
+        formData.append('userId', newPayment.userId);
+        formData.append('amount', newPayment.amount);
+        formData.append('plan', newPayment.plan);
+        formData.append('method', newPayment.method);
+        formData.append('utr', newPayment.utr);
+        if (newPayment.proof) formData.append('proof', newPayment.proof);
+        // Call backend API to add payment
+        await apiClient.post('/admin/payments', formData);
         alert('Payment added successfully!');
         setAddPaymentOpen(false);
         setNewPayment({ userId: '', amount: '', plan: '', method: 'UPI', utr: '', proof: null });
+        fetchUsers();
+      } catch (e) {
+        alert('Failed to add payment');
+      }
     };
     const verifyPayment = (paymentId) => {
         alert(`Payment ${paymentId} verified!`);
     };
-    const stats = [
-        { label: 'Total Revenue', value: '₹0', color: 'text-green-500' },
-        { label: 'Pending Payments', value: '₹0', color: 'text-yellow-500' },
-        { label: 'Completed', value: '0', color: 'text-blue-500' },
-        { label: 'Failed', value: '0', color: 'text-red-500' },
-    ];
+    // Calculate stats from users' payment data
+    const stats = React.useMemo(() => {
+      let totalRevenue = 0, pending = 0, completed = 0, failed = 0;
+      users.forEach(u => {
+        if (u.payments && Array.isArray(u.payments)) {
+          u.payments.forEach(p => {
+            if (p.status === 'completed') {
+              totalRevenue += Number(p.amount || 0);
+              completed++;
+            } else if (p.status === 'pending') {
+              pending += Number(p.amount || 0);
+            } else if (p.status === 'failed') {
+              failed++;
+            }
+          });
+        }
+      });
+      return [
+        { label: 'Total Revenue', value: `₹${totalRevenue}`, color: 'text-green-500' },
+        { label: 'Pending Payments', value: `₹${pending}`, color: 'text-yellow-500' },
+        { label: 'Completed', value: `${completed}`, color: 'text-blue-500' },
+        { label: 'Failed', value: `${failed}`, color: 'text-red-500' },
+      ];
+    }, [users]);
     return (<div className="min-h-screen bg-gray-50">
       <AdminSidebar currentPage="admin-payments" onNavigate={onNavigate}/>
       
@@ -68,7 +126,8 @@ export const PaymentManagementPanel = ({ onNavigate }) => {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (<Card key={index}>
+        {stats.map((stat) => (
+          <Card key={stat.label}>
             <CardContent className="p-4 text-center">
               <div className={`text-2xl ${stat.color}`}>{stat.value}</div>
               <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
@@ -91,22 +150,34 @@ export const PaymentManagementPanel = ({ onNavigate }) => {
 
           {/* User Cards */}
           <div className="space-y-2">
-            {mockPaymentData.map((user) => (<Card key={user.id} className={`cursor-pointer transition-all hover:shadow-md ${selectedUser.id === user.id ? 'ring-2 ring-red-500 bg-red-50' : ''} ${user.pendingAmount > 0 ? 'border-l-4 border-l-red-500' : ''}`} onClick={() => setSelectedUser(user)}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p>{user.name}</p>
-                      <p className="text-sm text-gray-500">{user.email}</p>
-                      <p className="text-xs text-gray-400">{user.phone}</p>
+            {users.filter(user => {
+                const q = searchQuery.toLowerCase();
+                return (
+                  user.name?.toLowerCase().includes(q) ||
+                  user.email?.toLowerCase().includes(q) ||
+                  user.phone?.toLowerCase().includes(q)
+                );
+              }).map((user) => (
+                <Card key={user.id || user.email || user.name} className={`cursor-pointer transition-all hover:shadow-md ${selectedUser?.id === user.id ? 'ring-2 ring-red-500 bg-red-50' : ''}`} onClick={() => setSelectedUser(user)}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p>{user.name}</p>
+                        <p className="text-sm text-gray-500">{user.email}</p>
+                        <p className="text-xs text-gray-400">{user.phone}</p>
+                        <p className="text-xs text-gray-400">User ID: {user.id || user.userId || 'N/A'}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-green-500">₹{user.payments?.filter(p=>p.status==='completed').reduce((a,p)=>a+Number(p.amount||0),0) || 0}</p>
+                        {user.payments?.some(p=>p.status==='pending') && (
+                          <p className="text-xs text-red-500">₹{user.payments.filter(p=>p.status==='pending').reduce((a,p)=>a+Number(p.amount||0),0)} due</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-green-500">₹{user.totalPaid}</p>
-                      {user.pendingAmount > 0 && (<p className="text-xs text-red-500">₹{user.pendingAmount} due</p>)}
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">Last payment: {user.lastPayment}</p>
-                </CardContent>
-              </Card>))}
+                    <p className="text-xs text-gray-500 mt-2">Last payment: {user.payments?.length ? user.payments[user.payments.length-1].date : 'N/A'}</p>
+                  </CardContent>
+                </Card>
+              ))}
           </div>
         </div>
 
@@ -126,13 +197,13 @@ export const PaymentManagementPanel = ({ onNavigate }) => {
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <Card>
                   <CardContent className="p-4 text-center">
-                    <div className="text-2xl text-green-500">₹{selectedUser?.totalPaid || 0}</div>
+                    <div className="text-2xl text-green-500">₹{selectedUser?.payments?.filter(p=>p.status==='completed').reduce((a,p)=>a+Number(p.amount||0),0) || 0}</div>
                     <div className="text-sm text-gray-500 mt-1">Total Paid</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4 text-center">
-                    <div className="text-2xl text-red-500">₹{selectedUser?.pendingAmount || 0}</div>
+                    <div className="text-2xl text-red-500">₹{selectedUser?.payments?.filter(p=>p.status==='pending').reduce((a,p)=>a+Number(p.amount||0),0) || 0}</div>
                     <div className="text-sm text-gray-500 mt-1">Pending</div>
                   </CardContent>
                 </Card>
@@ -150,7 +221,7 @@ export const PaymentManagementPanel = ({ onNavigate }) => {
                 {selectedUser?.payments && selectedUser.payments.length > 0 ? (
                   <div className="space-y-4">
                     {selectedUser.payments.map((payment) => (
-                      <Card key={payment.id}>
+                      <Card key={payment.id || payment.utr || payment.date}>
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between mb-3">
                             <div>
@@ -230,8 +301,11 @@ export const PaymentManagementPanel = ({ onNavigate }) => {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="userId">User ID</Label>
-              <Input id="userId" placeholder="Enter User ID (e.g., USR001)" value={newPayment.userId} onChange={(e) => setNewPayment({ ...newPayment, userId: e.target.value })}/>
+              <Label htmlFor="userId">User</Label>
+              <select id="userId" className="w-full border rounded px-2 py-1" value={newPayment.userId} onChange={e => setNewPayment({ ...newPayment, userId: e.target.value })}>
+                <option value="">Select User</option>
+                {users.map(u => <option key={u.id || u.email || u.name} value={u.id}>{u.name} ({u.email})</option>)}
+              </select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

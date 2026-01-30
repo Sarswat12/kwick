@@ -10,12 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { AdminSidebar } from './AdminSidebar';
 import { motion} from 'motion/react';
 
+import { fetchAllUsers } from '../../utils/adminDashboard';
+
 // Fleet data will be fetched from API
-const mockFleetData = [];
+// const mockFleetData = [];
 
 export const FleetManagementPanel = ({ onNavigate }) => {
+    const [users, setUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+        useEffect(() => {
+          fetchAllUsers(0, 100).then(data => setUsers(data || [])).catch(() => setUsers([]));
+        }, []);
     const [addVehicleOpen, setAddVehicleOpen] = useState(false);
     const [newVehicle, setNewVehicle] = useState({
         userId: '',
@@ -77,12 +83,14 @@ export const FleetManagementPanel = ({ onNavigate }) => {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (<Card key={index}>
+        {stats.map((stat) => (
+          <Card key={stat.label}>
             <CardContent className="p-4 text-center">
               <div className={`text-2xl ${stat.color}`}>{stat.value}</div>
               <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
             </CardContent>
-          </Card>))}
+          </Card>
+        ))}
       </div>
 
       {/* Main Content */}
@@ -100,22 +108,32 @@ export const FleetManagementPanel = ({ onNavigate }) => {
 
           {/* User Cards */}
           <div className="space-y-2">
-            {mockFleetData.map((user) => (<Card key={user.id} className={`cursor-pointer transition-all hover:shadow-md ${selectedUser.id === user.id ? 'ring-2 ring-red-500 bg-red-50' : ''}`} onClick={() => setSelectedUser(user)}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p>{user.name}</p>
-                      <p className="text-sm text-gray-500">{user.email}</p>
-                      <p className="text-xs text-gray-400">{user.phone}</p>
-                      <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                        <Car className="w-3 h-3"/>
-                        {user.vehicle.vehicleNumber}
-                      </p>
+            {users.filter(user => {
+                const q = searchQuery.toLowerCase();
+                return (
+                  user.name?.toLowerCase().includes(q) ||
+                  user.email?.toLowerCase().includes(q) ||
+                  user.phone?.toLowerCase().includes(q)
+                );
+              }).map((user) => (
+                <Card key={user.id} className={`cursor-pointer transition-all hover:shadow-md ${selectedUser?.id === user.id ? 'ring-2 ring-red-500 bg-red-50' : ''}`} onClick={() => setSelectedUser(user)}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p>{user.name}</p>
+                        <p className="text-sm text-gray-500">{user.email}</p>
+                        <p className="text-xs text-gray-400">{user.phone}</p>
+                        {/* Optionally show vehicle info if available */}
+                        {/* <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                          <Car className="w-3 h-3"/>
+                          {user.vehicle?.vehicleNumber}
+                        </p> */}
+                      </div>
+                      {/* <Badge className="bg-green-500">{user.vehicle?.status}</Badge> */}
                     </div>
-                    <Badge className="bg-green-500">{user.vehicle.status}</Badge>
-                  </div>
-                </CardContent>
-              </Card>))}
+                  </CardContent>
+                </Card>
+              ))}
           </div>
         </div>
 
@@ -124,75 +142,83 @@ export const FleetManagementPanel = ({ onNavigate }) => {
           <Card>
             <CardContent className="p-6">
               {selectedUser ? (
-              <>
-              {/* Header */}
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h3 className="text-xl">{selectedUser?.name || 'N/A'}</h3>
-                  <p className="text-gray-500">User ID: {selectedUser?.id || 'N/A'}</p>
-                  <Badge className="bg-green-500 mt-2">{selectedUser?.vehicle?.status || 'unassigned'}</Badge>
-                </div>
-                <Button onClick={() => unassignVehicle(selectedUser.id)} variant="destructive" size="sm">
-                  Unassign Vehicle
-                </Button>
-              </div>
+                <>
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-6">
+                    <div>
+                      <h3 className="text-xl">{selectedUser?.name || 'N/A'}</h3>
+                      <p className="text-gray-500">User ID: {selectedUser?.id || 'N/A'}</p>
+                      <Badge className="bg-green-500 mt-2">{selectedUser?.vehicle?.status || 'unassigned'}</Badge>
+                    </div>
+                    <Button onClick={() => unassignVehicle(selectedUser.id)} variant="destructive" size="sm">
+                      Unassign Vehicle
+                    </Button>
+                  </div>
 
-              {/* Vehicle Image */}
-              <div className="mb-6">
-                <img src={selectedUser.vehicle.vehicleImage} alt="Vehicle" className="w-full h-64 object-cover rounded-lg"/>
-              </div>
+                  {/* Vehicle Image */}
+                  <div className="mb-6">
+                    {selectedUser.vehicle && selectedUser.vehicle.vehicleImage ? (
+                      <img src={selectedUser.vehicle.vehicleImage} alt="Vehicle" className="w-full h-64 object-cover rounded-lg"/>
+                    ) : (
+                      <div className="w-full h-64 flex items-center justify-center bg-gray-200 rounded-lg text-gray-400">No Image</div>
+                    )}
+                  </div>
 
-              {/* Vehicle Details */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
-                <div>
-                  <p className="text-sm text-gray-500">Vehicle Number</p>
-                  <p className="text-lg">{selectedUser.vehicle.vehicleNumber}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Chassis Number</p>
-                  <p className="text-lg">{selectedUser.vehicle.chassisNumber}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Model Number</p>
-                  <p className="text-lg">{selectedUser.vehicle.modelNumber}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Controller Number</p>
-                  <p className="text-lg">{selectedUser.vehicle.controllerNumber}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Hub</p>
-                  <p className="text-lg">{selectedUser.vehicle.hub}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Assigned By</p>
-                  <p className="text-lg">{selectedUser.vehicle.assignedBy}</p>
-                </div>
-              </div>
+                  {/* Vehicle Details */}
+                  {selectedUser.vehicle ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
+                      <div>
+                        <p className="text-sm text-gray-500">Vehicle Number</p>
+                        <p className="text-lg">{selectedUser.vehicle.vehicleNumber || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Chassis Number</p>
+                        <p className="text-lg">{selectedUser.vehicle.chassisNumber || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Model Number</p>
+                        <p className="text-lg">{selectedUser.vehicle.modelNumber || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Controller Number</p>
+                        <p className="text-lg">{selectedUser.vehicle.controllerNumber || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Hub</p>
+                        <p className="text-lg">{selectedUser.vehicle.hub || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Assigned By</p>
+                        <p className="text-lg">{selectedUser.vehicle.assignedBy || 'N/A'}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mb-6 text-gray-400">No vehicle assigned</div>
+                  )}
 
-              {/* Assignment Info */}
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="mb-3">Assignment Information</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Assigned Date</p>
-                    <p>{selectedUser?.vehicle?.assignedDate || 'N/A'}</p>
+                  {/* Assignment Info */}
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <h4 className="mb-3">Assignment Information</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Assigned Date</p>
+                        <p>{selectedUser?.vehicle?.assignedDate || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Person Name</p>
+                        <p>{selectedUser?.name || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Contact</p>
+                        <p>{selectedUser?.phone || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Email</p>
+                        <p>{selectedUser?.email || 'N/A'}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Person Name</p>
-                    <p>{selectedUser?.name || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Contact</p>
-                    <p>{selectedUser?.phone || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Email</p>
-                    <p>{selectedUser?.email || 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-              </>
+                </>
               ) : (
                 <div className="text-center py-12 text-gray-500">
                   <p>Select a user to view vehicle details</p>

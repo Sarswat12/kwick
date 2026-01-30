@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Mail, Lock, User, Phone, Eye, EyeOff, Zap, Shield, TrendingUp } from "lucide-react";
 import { Button } from "./ui/button";
@@ -7,37 +8,45 @@ import { Label } from "./ui/label";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
 export function AdvancedAuthModal({ isOpen, onClose, initialMode = 'login' }) {
-    const [mode, setMode] = useState(initialMode);
-    const [showPassword, setShowPassword] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const { login, signup } = useAuth();
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        password: '',
-        phone: '',
-    });
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
-        try {
-            if (mode === 'login') {
-                await login(formData.email, formData.password);
-                toast.success('Welcome back to KWICK!');
-            }
-            else {
-                await signup(formData.name, formData.email, formData.password, formData.phone);
-                toast.success('Account created successfully!');
-            }
-            onClose();
-        }
-        catch (error) {
-            toast.error('Authentication failed. Please try again.');
-        }
-        finally {
-            setIsLoading(false);
-        }
-    };
+  const navigate = useNavigate();
+  const [mode, setMode] = useState(initialMode);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { login, signup, user } = useAuth();
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+  });
+
+  // Wait for user state to update before navigating
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      if (mode === 'login') {
+        await login(formData.email, formData.password);
+        toast.success('Welcome back to KWICK!');
+        onClose();
+        // Wait for user state to be set before navigating
+        setTimeout(() => {
+          navigate('/user/dashboard');
+        }, 100);
+      } else {
+        await signup(formData.name, formData.email, formData.password, formData.phone);
+        toast.success('Account created successfully!');
+        onClose();
+        setTimeout(() => {
+          navigate('/user/dashboard');
+        }, 100);
+      }
+    } catch (error) {
+      toast.error('Authentication failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
     const benefits = [
         { icon: TrendingUp, text: "Earn ₹15K-₹50K monthly" },
         { icon: Shield, text: "Full insurance coverage" },

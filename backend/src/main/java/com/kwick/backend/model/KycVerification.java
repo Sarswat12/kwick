@@ -8,45 +8,107 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "kyc_verification")
 public class KycVerification {
-    // Aadhaar Front metadata
-    @Column(name = "aadhaar_front_filename")
+
+    // Aadhaar Front file metadata
     private String aadhaarFrontFilename;
-    @Column(name = "aadhaar_front_type")
     private String aadhaarFrontType;
-    @Column(name = "aadhaar_front_size")
     private Long aadhaarFrontSize;
 
-    // Aadhaar Back metadata
-    @Column(name = "aadhaar_back_filename")
+    // Aadhaar Back file metadata
     private String aadhaarBackFilename;
-    @Column(name = "aadhaar_back_type")
     private String aadhaarBackType;
-    @Column(name = "aadhaar_back_size")
     private Long aadhaarBackSize;
 
-    // License Front metadata
-    @Column(name = "license_front_filename")
+    // License Front file metadata
     private String licenseFrontFilename;
-    @Column(name = "license_front_type")
     private String licenseFrontType;
-    @Column(name = "license_front_size")
     private Long licenseFrontSize;
 
-    // License Back metadata
-    @Column(name = "license_back_filename")
+    // License Back file metadata
     private String licenseBackFilename;
-    @Column(name = "license_back_type")
     private String licenseBackType;
-    @Column(name = "license_back_size")
     private Long licenseBackSize;
 
-    // Selfie metadata
-    @Column(name = "selfie_filename")
+    // Selfie file metadata
     private String selfieFilename;
-    @Column(name = "selfie_type")
     private String selfieType;
-    @Column(name = "selfie_size")
     private Long selfieSize;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "kyc_id")
+    private Long id;
+
+
+
+
+
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Column(name = "aadhaar_number", length = 20)
+    private String aadhaarNumber;
+
+    @Column(name = "driving_license_number", length = 20)
+    private String drivingLicenseNumber;
+
+    @Column(name = "license_expiry_date")
+    private LocalDate licenseExpiryDate;
+
+    @Column(name = "street_address", length = 255)
+    private String streetAddress;
+
+    @Column(name = "city", length = 100)
+    private String city;
+
+    @Column(name = "state", length = 100)
+    private String state;
+
+    @Column(name = "pincode", length = 20)
+    private String pincode;
+
+    @Column(name = "aadhaar_front_url", length = 255)
+    private String aadhaarFrontUrl;
+
+    @Column(name = "aadhaar_back_url", length = 255)
+    private String aadhaarBackUrl;
+
+    @Column(name = "license_front_url", length = 255)
+    private String licenseFrontUrl;
+
+    @Column(name = "license_back_url", length = 255)
+    private String licenseBackUrl;
+
+    @Column(name = "selfie_url", length = 255)
+    private String selfieUrl;
+
+    @Column(name = "kyc_pdf_url", length = 255)
+    private String kycPdfUrl;
+
+    @Column(name = "document_type", length = 50)
+    private String documentType;
+
+    @Column(name = "document_url", length = 255)
+    private String documentUrl;
+
+    @Column(name = "verification_status", length = 20)
+    private String verificationStatus = "pending";
+
+    @Column(name = "rejection_reason", length = 255)
+    private String rejectionReason;
+
+    @Column(name = "verified_by_admin")
+    private Long verifiedByAdmin;
+
+    @Column(name = "verified_at")
+    private LocalDateTime verifiedAt;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     // Aadhaar Front
     public String getAadhaarFrontFilename() { return aadhaarFrontFilename; }
@@ -88,77 +150,6 @@ public class KycVerification {
     public Long getSelfieSize() { return selfieSize; }
     public void setSelfieSize(Long s) { this.selfieSize = s; }
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "kyc_id")
-    private Long id;
-
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
-
-    @Column(name = "aadhaar_number")
-    private String aadhaarNumber;
-
-    @Column(name = "driving_license_number")
-    private String drivingLicenseNumber;
-
-    @Column(name = "license_expiry_date")
-    private LocalDate licenseExpiryDate;
-
-    @Column(name = "street_address")
-    private String streetAddress;
-
-    @Column(name = "city")
-    private String city;
-
-    @Column(name = "state")
-    private String state;
-
-    @Column(name = "pincode")
-    private String pincode;
-
-    @Column(name = "aadhaar_front_url")
-    private String aadhaarFrontUrl;
-
-    @Column(name = "aadhaar_back_url")
-    private String aadhaarBackUrl;
-
-    @Column(name = "license_front_url")
-    private String licenseFrontUrl;
-
-    @Column(name = "license_back_url")
-    private String licenseBackUrl;
-
-    @Column(name = "selfie_url")
-    private String selfieUrl;
-
-    @Column(name = "kyc_pdf_url")
-    private String kycPdfUrl;
-
-    // Backwards-compatible generic document fields (legacy)
-    @Column(name = "document_type")
-    private String documentType;
-
-    @Column(name = "document_url")
-    private String documentUrl;
-
-    @Column(name = "verification_status")
-    private String verificationStatus = "pending";
-
-    @Column(name = "rejection_reason")
-    private String rejectionReason;
-
-    @Column(name = "verified_by_admin")
-    private Long verifiedByAdmin;
-
-    @Column(name = "verified_at")
-    private LocalDateTime verifiedAt;
-
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {

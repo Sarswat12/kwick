@@ -25,7 +25,7 @@ export function RentVehiclePage() {
         {
             id: "weekly",
             name: "Weekly",
-            price: "₹1,750",
+            price: "₹180",
             period: "per week",
             features: [
                 "700 km weekly limit",
@@ -38,7 +38,7 @@ export function RentVehiclePage() {
         {
             id: "monthly",
             name: "Monthly Pro",
-            price: "₹7,500",
+            price: "₹",
             period: "per month",
             features: [
                 "Unlimited kilometers",

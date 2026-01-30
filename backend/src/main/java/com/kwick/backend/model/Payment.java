@@ -3,24 +3,48 @@ package com.kwick.backend.model;
 import jakarta.persistence.*;
 import java.time.Instant;
 
+
+
+
 @Entity
-@Table(name = "PAYMENTS")
+@Table(name = "payments")
 public class Payment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "user_id", nullable = false)
     private Long userId;
+
+    @Column(name = "rental_id")
     private Long rentalId;
+
+    @Column(nullable = false)
     private Double amount;
+
+    @Column(length = 50)
     private String provider;
+
+    @Column(length = 50)
     private String method;
+
+    @Column(name = "transaction_id", length = 100, unique = true)
     private String transactionId;
+
+    @Column(length = 20)
     private String status;
+
+    @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
+
+    @Column(name = "proof_image_url", length = 255)
     private String proofImageUrl;
+
+    @Column(name = "verified_by_admin")
     private Long verifiedByAdmin;
+
+    @Column(name = "verified_at")
     private Instant verifiedAt;
 
     // getters/setters

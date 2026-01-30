@@ -5,18 +5,30 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
+
+
+
 @Entity
-@Table(name = "RENTALS")
+@Table(name = "rentals")
 public class Rental {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "user_id", nullable = false)
     private Long userId;
+
+    @Column(name = "vehicle_id", nullable = false)
     private Long vehicleId;
+
+    @Column(name = "start_time", nullable = false)
     private Instant startTime;
+
+    @Column(name = "end_time")
     private Instant endTime;
+
+    @Column(nullable = false, length = 20)
     private String status = "active";
 
     // getters/setters

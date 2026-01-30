@@ -46,9 +46,10 @@ public class AdminUsersController {
                         (u.getPhone() != null && u.getPhone().toLowerCase().contains(q.toLowerCase())))
                 .collect(Collectors.toList());
         
-        // Apply pagination
-        int start = page * size;
-        int end = Math.min(start + size, filtered.size());
+        // Apply pagination with default size if size is 0 or less
+        int effectiveSize = (size <= 0) ? 50 : size;
+        int start = page * effectiveSize;
+        int end = Math.min(start + effectiveSize, filtered.size());
         List<User> paged = (start < filtered.size()) ? filtered.subList(start, end) : Collections.emptyList();
         
         // Convert to DTO (exclude password hash)
@@ -60,7 +61,7 @@ public class AdminUsersController {
         response.put("items", items);
         response.put("total", filtered.size());
         response.put("page", page);
-        response.put("size", size);
+        response.put("size", effectiveSize);
         
         logger.info("Returning {} users (total filtered: {})", items.size(), filtered.size());
         return ResponseEntity.ok(response);

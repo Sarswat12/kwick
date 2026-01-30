@@ -2,8 +2,9 @@ import api from './apiClient';
 
 // Fetch all users (paginated)
 export async function fetchAllUsers(page = 0, size = 10) {
-  const res = await api.get('/users', { params: { page, size } });
-  return res.data.data;
+  const res = await api.get('/admin/users', { params: { page, size } });
+  // The backend returns the user list in res.data.items (not res.data.data)
+  return res.data.items || res.data.data;
 }
 
 // Fetch all rentals (paginated)

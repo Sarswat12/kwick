@@ -3,6 +3,13 @@ package com.kwick.backend.model;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+
+
+
+
+
+
+
 @Entity
 @Table(name = "cta_record")
 public class CtaRecord {
@@ -10,24 +17,25 @@ public class CtaRecord {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private String phone;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String location;
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private String status = "new";
 
+    @Column(name = "handled_at")
     private LocalDateTime handledAt;
 
     public CtaRecord() {}

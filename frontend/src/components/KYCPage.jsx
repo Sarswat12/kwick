@@ -40,6 +40,26 @@ export function KYCPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [kycStatus, setKycStatus] = useState(null);
+  const [downloading, setDownloading] = useState(false);
+    // Download KYC PDF handler
+    async function handleDownloadKycPdf() {
+      setDownloading(true);
+      try {
+        const blob = await kycApi.downloadKycPdf();
+        const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'KYC_Form.pdf');
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (e) {
+        setError('Failed to download KYC PDF');
+      } finally {
+        setDownloading(false);
+      }
+    }
   const [checklist, setChecklist] = useState([]);
 
   // Fetch KYC status on mount
@@ -140,12 +160,33 @@ export function KYCPage() {
           <p className="text-muted-foreground">Complete your verification to start renting</p>
         </div>
         {kycStatus && (
-          <Badge className="bg-green-500/10 text-green-600 border-green-500/20 mt-4 md:mt-0 w-fit">
-            <CheckCircle className="w-4 h-4 mr-2"/>
-            {kycStatus.charAt(0).toUpperCase() + kycStatus.slice(1)}
-          </Badge>
+          <div className="flex flex-col items-end gap-2 mt-4 md:mt-0">
+            <Badge className={`w-fit ${kycStatus === 'approved' ? 'bg-green-500/10 text-green-600 border-green-500/20' : 'bg-yellow-100 text-yellow-700 border-yellow-300' }`}>
+              {kycStatus === 'approved' ? <CheckCircle className="w-4 h-4 mr-2 inline"/> : <Clock className="w-4 h-4 mr-2 inline"/>}
+              {kycStatus.charAt(0).toUpperCase() + kycStatus.slice(1)}
+            </Badge>
+            {kycStatus === 'approved' && (
+              <div className="flex gap-2 mt-1">
+                <Button size="sm" variant="outline" onClick={handleDownloadKycPdf} disabled={downloading}>
+                  <Download className="w-4 h-4 mr-1" /> Download KYC Form
+                </Button>
+                <Button size="sm" variant="secondary" onClick={handleDownloadKycPdf} disabled={downloading}>
+                  <EyeIcon className="w-4 h-4 mr-1" /> View KYC Form
+                </Button>
+              </div>
+            )}
+          </div>
         )}
       </div>
+      // Eye icon for view button
+      function EyeIcon(props) {
+        return (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye" width="1em" height="1em" {...props}>
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        );
+      }
       {error && <div className="text-red-600 font-semibold">{error}</div>}
       {success && <div className="text-green-600 font-semibold">{success}</div>}
       <div className="grid lg:grid-cols-3 gap-6">
